@@ -1,7 +1,7 @@
 
 #info-msg {  
     position: absolute;
-    top: 50%; left: 50%;
+    top: 40%; left: 50%;
     transform: translate(-50%,-50%);
     width: 300px;
     height: 100px;
@@ -9,23 +9,23 @@
 
 #audio-obj {
     position: absolute;
-    top: 50%; left: 50%;
+    top: 40%; left: 50%;
     transform: translate(-50%,-50%);
     width: 300px;
     height: 100px;
 }
 
-
 body {
     /* background-image: linear-gradient(206deg, #124d75 5%, #043346 20%)!important; */
-    background-color:  #000203!important;
+    background-color:  #030b15!important;
     background-size: cover;
-    /* height: 80%; */
+    height: 80%;
+    margin-top: 25px;
 }
 
 #header {
     /* background-image: linear-gradient(206deg, #203246f1 10%, #002438 30%); */
-    margin-top: 25px;
+    margin-top: 35px; 
 }
 
 

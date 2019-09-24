@@ -23,22 +23,33 @@
 
     <title>wasm-demo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/wavesurfer.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/zeu"></script>
-    <!-- <script src="https://unpkg.com/wavesurfer.js"></script> -->
     <script src="dist/essentiamin.js"></script>
-    <!-- <script src="src/js/wavesurfer.microphone.min.js"></script> -->
     <script src="src/js/essentiatools.js"></script>
     <script src="src/js/app.js"></script>
     <script src="src/js/dataviz.js"></script>
-    <script>
+  </head>
+  <body>  
+      <script>
 
       // 20 mb file upload limit
       FILE_UPLOAD_LIMIT = 20;
       var chartJsCtx;
+      var wavesurfer;
 
       $(document).ready(function () {
+
+            wavesurfer = WaveSurfer.create({
+                audioContext: audioContext,
+                container: '#audio-obj',
+                waveColor: 'grey',
+                progressColor: '#3D60BF',
+                cursorColor: '#fff',
+                barWidth: 2,
+            });
 
             // wavesurfer = WaveSurfer.create({
             //     container: '#waveform',
@@ -51,8 +62,6 @@
             //         })
             //     ]
             // });
-
-            $('.menu .item').tab();
 
             $('#recordButton').click(function () {
                 // recordAudioWaveSurf();
@@ -106,7 +115,7 @@
             // 
             $('#melody-tab').on('click', function() {
                 console.log("clicked");
-                plotLineChartMelody(urlAudioBuffer.getChannelData(0));
+
                 $.tab({
                     'onVisible': function() {
                         // plot melody
@@ -119,8 +128,6 @@
 
         });
     </script> 
-  </head>
-  <body>  
 
     <div class="ui main_wrapper landing-image">
 
@@ -131,6 +138,7 @@
                 <h2 class="ui header white-text">MIR features on your browser</h2>
             </center>
         </div>
+        <div class="ui divider" style="height: 30px; width: 10px"></div>
     </div>
 
     <br>
@@ -140,8 +148,13 @@
         <div class="ui two column grid container content-container">
 
             <div id="control_btns" class="control_btns six wide left aligned column">
-
                 <div class="ui basic centered grid">
+                    <div class="ui left floated compact">
+                            <div id="realtime-tab" class="ui toggle checkbox">
+                            <input type="checkbox" name="public">
+                            <label>Real-time</label>
+                        </div>
+                    </div>
                     <div class="ui vertical buttons row">
                         <button id="recordButton" class="ui vertical red inverted big button record-button">Record
                             &nbsp;&nbsp;<i class="microphone icon"></i></button>
@@ -160,13 +173,8 @@
                     <p hidden id="status_demo" class="white-text"><span id="update_status"></span></p>
                 </div>
             </div>
+
             <div id="results" class="ui ten wide column basic segment result-segment">
-                <div class="ui left floated compact segment">
-                    <div id="realtime-tab" class="ui toggle checkbox">
-                            <input type="checkbox" name="public">
-                            <label>Real-time</label>
-                    </div>
-                </div>
                 <div id="result-tab-menu" class="ui top attached tabular menu">
                     <a class="item active" data-tab="first" style="color: indianred">Audio</a>
                     <a id="melody-tab" class="item" data-tab="second" style="color: indianred">Melody</a>

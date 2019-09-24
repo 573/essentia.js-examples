@@ -15,12 +15,16 @@ let urlAudioBuffer = null;
 var recStream = null;
 
 // global js object for the web app
-var appStatus = {
-                  'audioLoaded': false, 
-                  'realtime': false,
-                  'uploadMode': 'mic', // {'mic', 'file'}
-                  'audioChanged': false,
-                  'cachePlot': false
+let appStatus = {
+                  audioLoaded: false, 
+                  realtime: false,
+                  uploadMode: 'mic', // {'mic', 'file'}
+                  audioChanged: false,
+                  cachePlot: {
+                      melody: false,
+                      chroma: false,
+                      bpmHistogram: false
+                  },
                 };
 
 
@@ -99,8 +103,13 @@ const recordStop = async () => {
   if (recorder) {
     recAudio = await recorder.stop();
     recorder = null;
-    addSourceToAudioPlayer(recAudio.audioUrl);
-    $("#audio-div").show();
+    // add recorded audio to viz
+    wavesurfer.load(recAudio.audioUrl);
+    if (appStatus.audioLoaded) { removeAudioButtons(); };
+    createAudioButtons();
+    appStatus.audioLoaded = true;
+    // addSourceToAudioPlayer(recAudio.audioUrl);
+    // $("#audio-div").show();
     $("#recordButton").prop("disabled", false);
     $("#recordButton").html('Record &nbsp;&nbsp;<i class="microphone icon"></i>');
   } else {
@@ -151,6 +160,20 @@ checkUploadFileExtension = function(blob, allowedExtensions=["wav", "mp3", 'ogg'
 }
 
 
+createAudioButtons = function() {
+    var $input = $('<button id="play-btn" class="ui vertical red inverted centered button" onclick="wavesurfer.playPause()"><i class="play icon"></i>Play</button>');
+    $input.appendTo($("#audio-obj"));
+    var $stop = $('<button id="stop-btn" class="ui vertical red inverted centered button" onclick="wavesurfer.stop()"><i class="stop icon"></i>Stop</button>');
+    $stop.appendTo($('#audio-obj'));
+
+}
+
+removeAudioButtons = function() {
+    $('#play-btn').remove();
+    $('#stop-btn').remove();
+}
+
+
 // submit a local file from users disk using web ui
 uploadAudioFileFromMenu = function(fileContainer, uploadType) {
     let reader = new FileReader();
@@ -171,46 +194,19 @@ uploadAudioFileFromMenu = function(fileContainer, uploadType) {
         throw "Excedees maximum upload file size limit " + FILE_UPLOAD_LIMIT + "mb!";
     }
    
-    addToAudioPlayer(blob);
+    // addToAudioPlayer(blob);
+    wavesurfer.loadBlob(blob);
+    if (appStatus.audioLoaded) { removeAudioButtons(); };
+    createAudioButtons();
+    appStatus.audioLoaded = true;
     console.log("file uploaded succesfully");
-    $("#audio-div").show();
-
-    // here we do the feature extraction process
-
+    // $("#audio-div").show();
+    // here we do the feature extraction callback process if needed
 
 }
-
-
-getFreesoundPreview = function(soundId, accessToken) {
-	var url = "http://www.freesound.org/apiv2/search/1234" + soundId + "/?fields=id,previews"; //just for reference
-	url = encodeURI(url);
-	access_token = val;
-	url = encodeURI(val);
-
-	xmlhttp = new XMLHttpRequest();
-	xmlhttp.open("GET",url);
-	xmlhttp.setRequestHeader("Authorization", "Bearer " + accessToken);
-	xmlhttp.onreadystatechange = parsePrevewUriFreesound;
-	xmlhttp.send();
-}
-
-
-parsePrevewUriFreesound = function() {
-	if (this.readyState == 4){
- 		var myjson = JSON.stringify(this.responseText);
-		var mystr = myjson.split('\\').join('');
-		var uri = mystr.substr(1).slice(0, -1);
-		return uri
-		}
-	else {
-		console.log("Failed to parse preview url from freesound.org for the given sound id ")
-		return -1;
-	}
-}
-
-
 
 assertAudioLoadedMessage = function() {
     if (!appStatus.audioLoaded) {
     }
 }
+

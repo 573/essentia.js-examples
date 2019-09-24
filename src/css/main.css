@@ -1,4 +1,5 @@
 
+
 #info-msg {  
     position: absolute;
     top: 40%; left: 50%;
@@ -17,7 +18,7 @@
 
 body {
     /* background-image: linear-gradient(206deg, #124d75 5%, #043346 20%)!important; */
-    background-color:  #030b15!important;
+    background-color:  #000000!important;
     background-size: cover;
     height: 80%;
     margin-top: 25px;
@@ -25,24 +26,21 @@ body {
 
 #header {
     /* background-image: linear-gradient(206deg, #203246f1 10%, #002438 30%); */
-    margin-top: 35px; 
+    margin-top: 10px; 
 }
 
-
-h1 {
-    font-style: initial!important;
+#header-img {
+    width: 18em!important;
 }
-
 
 h2 {
-    font-size: 14px!important;
-    font-style: oblique!important;
+    font-size: 13px!important;
 }
 
 
 #realtime-tab {
-    font-size: 11.2px;
-}_
+    font-size: 13px;
+}
 
 
 .main_wrapper {
@@ -53,7 +51,7 @@ h2 {
 
 
 .footer {
-    margin-top: 60px;
+    margin-top: 60px; 
     /* background-image: linear-gradient(244deg, #ff5a5f 3%, #ac4142 90%);  */
     height: 14%;
 }

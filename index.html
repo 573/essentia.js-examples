@@ -9,13 +9,13 @@
     };
 
   </script> 
-  <link rel="shortcut icon" href="src/img/essentia_logo.ico">
+  <link rel="shortcut icon" href="src/img/essentia.js.ico">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Edit your site info here -->
-    <meta name="essentiamin.js" content="WASM demo for essentiamin">
+    <meta name="essentia.js" content="essentia.js-examples">
 
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css"/>
@@ -131,14 +131,16 @@
 
     <div class="ui main_wrapper landing-image">
 
-    <div class="ui header" id="header">
+    <div class="ui header centered" id="header">
+        <a target="_blank" href="//github.com/MTG/essentia.js">
+            <img id="header-img" src="src/img/essentiajsbanner.png">
+        </a>
         <div>
             <center>
-                <h1 class="ui huge header white-text">essentia.js</h1>
-                <h2 class="ui header white-text">MIR features on your browser</h2>
+                <h2 class="ui header white-text">Audio/Music analysis on your web-browser</h2>
             </center>
         </div>
-        <div class="ui divider" style="height: 30px; width: 10px"></div>
+        <div class="ui divider" style="height: 10px; width: 10px"></div>
     </div>
 
     <br>
@@ -149,10 +151,10 @@
 
             <div id="control_btns" class="control_btns six wide left aligned column">
                 <div class="ui basic centered grid">
-                    <div class="ui left floated compact">
-                            <div id="realtime-tab" class="ui toggle checkbox">
+                    <div class="ui floated compact" style="color: azure!important;">
+                        <div id="realtime-tab" class="ui toggle checkbox">
                             <input type="checkbox" name="public">
-                            <label>Real-time</label>
+                            <label style="color: azure!important;">Real-time</label>
                         </div>
                     </div>
                     <div class="ui vertical buttons row">
@@ -165,7 +167,7 @@
 
                 <div class="ui basic segment row">
                     <div class="ui-widget" id="file-uploader">
-                        <p style="position:absolute; padding: 12px; width:85%;"><br><br>Drag a file or click to select a file from your computer</p>
+                        <p style="position:absolute; padding: 12px; width:85%;"><br><br>Drag'n'Drop a file or click to select a file from your computer</p>
                         <input type="file" id="file-menu"/>
                     </div>
                 </div>

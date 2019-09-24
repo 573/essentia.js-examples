@@ -1,0 +1,227 @@
+<html lang="en">
+  <script>
+
+    var Module = {
+        onRuntimeInitialized: function() {
+            console.log('essentiamin.js and .wasm files are loaded sucessfully ...');
+            loadSoundFromUri(sampleFreesoundUri);
+        }
+    };
+
+  </script> 
+  <link rel="shortcut icon" href="src/img/essentia_logo.ico">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Edit your site info here -->
+    <meta name="essentiamin.js" content="WASM demo for essentiamin">
+
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css"/>
+    <link rel="stylesheet" type="text/css" href="src/css/main.css"/>
+
+    <title>wasm-demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/zeu"></script>
+    <!-- <script src="https://unpkg.com/wavesurfer.js"></script> -->
+    <script src="dist/essentiamin.js"></script>
+    <!-- <script src="src/js/wavesurfer.microphone.min.js"></script> -->
+    <script src="src/js/essentiatools.js"></script>
+    <script src="src/js/app.js"></script>
+    <script src="src/js/dataviz.js"></script>
+    <script>
+
+      // 20 mb file upload limit
+      FILE_UPLOAD_LIMIT = 20;
+      var chartJsCtx;
+
+      $(document).ready(function () {
+
+            // wavesurfer = WaveSurfer.create({
+            //     container: '#waveform',
+            //     waveColor: 'purple',
+            //     progressColor: 'red',
+            //     audioContext: audioContext,
+            //     plugins: [
+            //         WaveSurfer.microphone.create({
+            //             'buffersize': 256
+            //         })
+            //     ]
+            // });
+
+            $('.menu .item').tab();
+
+            $('#recordButton').click(function () {
+                // recordAudioWaveSurf();
+                appStatus.uploadMode = 'mic';
+                recordStop();
+                $('#info-msg').hide();
+            });
+            $('#file-menu').change(function () {
+                appStatus.uploadMode = 'file';
+                uploadAudioFileFromMenu($("#file-menu"), 'popup');
+                $('#info-msg').hide();
+            });
+            $('#file-uploader').on(
+                'dragover',
+                function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            )
+            $('#file-uploader').on(
+                'dragenter',
+                function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            )
+            $('#file-uploader').on(
+                'drop',
+                function (e) {
+                    if (e.originalEvent.dataTransfer) {
+                        if (e.originalEvent.dataTransfer.files.length) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            /*UPLOAD FILES HERE*/
+                            appStatus.uploadMode = 'file';
+                            uploadAudioFileFromMenu(e.originalEvent.dataTransfer.files[0], 'dragndrop');
+                            $('#info-msg').hide();
+                        }
+                    }
+                }
+            );
+
+            // toggle switch for using real-time mode
+            $('#realtime-tab').checkbox({
+                onChecked: function () {appStatus.realtime = true; 
+                    console.log("Appstatus.realtime: ", appStatus.realtime)},
+                onUnchecked: function () {appStatus.realtime = false; 
+                    console.log("Appstatus.realtime: ", appStatus.realtime)}
+            });
+
+            // 
+            $('#melody-tab').on('click', function() {
+                console.log("clicked");
+                plotLineChartMelody(urlAudioBuffer.getChannelData(0));
+                $.tab({
+                    'onVisible': function() {
+                        // plot melody
+                        console.log("clicked on plot");
+                        plotLineChartMelody(urlAudioBuffer.getChannelData(0));
+                    }
+                });
+            });
+
+
+        });
+    </script> 
+  </head>
+  <body>  
+
+    <div class="ui main_wrapper landing-image">
+
+    <div class="ui header" id="header">
+        <div>
+            <center>
+                <h1 class="ui huge header white-text">essentia.js</h1>
+                <h2 class="ui header white-text">MIR features on your browser</h2>
+            </center>
+        </div>
+    </div>
+
+    <br>
+
+    <div class="body-container">
+
+        <div class="ui two column grid container content-container">
+
+            <div id="control_btns" class="control_btns six wide left aligned column">
+
+                <div class="ui basic centered grid">
+                    <div class="ui vertical buttons row">
+                        <button id="recordButton" class="ui vertical red inverted big button record-button">Record
+                            &nbsp;&nbsp;<i class="microphone icon"></i></button>
+                    </div>
+                </div>
+
+                <div class="ui horizontal divider" style="color: papayawhip;">OR</div>
+
+                <div class="ui basic segment row">
+                    <div class="ui-widget" id="file-uploader">
+                        <p style="position:absolute; padding: 12px; width:85%;"><br><br>Drag a file or click to select a file from your computer</p>
+                        <input type="file" id="file-menu"/>
+                    </div>
+                </div>
+                <div class="ui left basic row segment">
+                    <p hidden id="status_demo" class="white-text"><span id="update_status"></span></p>
+                </div>
+            </div>
+            <div id="results" class="ui ten wide column basic segment result-segment">
+                <div class="ui left floated compact segment">
+                    <div id="realtime-tab" class="ui toggle checkbox">
+                            <input type="checkbox" name="public">
+                            <label>Real-time</label>
+                    </div>
+                </div>
+                <div id="result-tab-menu" class="ui top attached tabular menu">
+                    <a class="item active" data-tab="first" style="color: indianred">Audio</a>
+                    <a id="melody-tab" class="item" data-tab="second" style="color: indianred">Melody</a>
+                    <a class="item" data-tab="third" style="color: indianred">Key</a>
+                    <a class="item" data-tab="fourth" style="color: indianred">BPM</a>
+                    <a class="item" data-tab="fifth" style="color: indianred">Loudness</a>
+                    <a class="item" data-tab="sixth" style="color: indianred">MFCC</a>
+                </div>
+                <div id="init-res-div" class="ui bottom attached tab segment active" data-tab="first" style="width: 900px; height: 350px; background-color: transparent">
+                    <!-- <canvas id="test-canvas"></canvas> -->
+                    <div id="audio-obj" class="ui row" style="margin-bottom: 40px;">
+                            <center>
+                                <audio hidden id="audio-div" controls>
+                                    <source id="audio-source" src="" type="audio/wav"/>
+                                </audio>
+                            </center>
+                    </div>
+                    <div id="info-msg" class="ui info message">
+                        <i class="close icon"></i>
+                        <center>
+                        Add audio from your native microphone 
+                                    or 
+                        upload an audio file
+                        </center>
+                    </div>            
+                </div>
+                <div id="melody-div" class="ui bottom attached tab segment" data-tab="second" style="width: 900px; height: 350px; background-color: transparent">
+                </div>
+                <div id="key-div" class="ui bottom attached tab segment" data-tab="third" style="width: 900px; height: 350px; background-color: transparent">
+                </div>
+                <div id="bpm-div" class="ui bottom attached tab segment" data-tab="fourth" style="width: 900px; height: 350px; background-color: transparent"> 
+                </div>
+                <div id="loudness-div" class="ui bottom attached tab segment" data-tab="fifth" style="width: 900px; height: 350px; background-color: transparent">
+                </div>
+                <div id="mfcc-div" class="ui bottom attached tab segment" data-tab="sixth" style="width: 900px; height: 350px; background-color: transparent">
+                </div>
+            </div>
+
+        </div>
+
+        <center>
+        <div class="footer">
+            <a class="demo_logo" target="_blank" href="//essentia.upf.edu">
+                <img id="logo" src="https://essentia.upf.edu/documentation/_static/essentia_logo.svg" alt="MTG Logo"
+                     style="margin-left: 40px; height: 70px;">
+            </a>
+            <a target="_blank" href="https://www.upf.edu/web/mtg">
+                <img class="essnt-footer_mtg-logo" src="https://mtg.github.io/assets/img/upflogo.png" alt="mtg logo"
+                     style="width:300px; height: 70px;">
+            </a>
+        </div>
+        </center>
+
+    </div>
+
+</div>   
+  </body>
+</html>

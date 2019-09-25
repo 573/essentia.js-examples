@@ -8,11 +8,20 @@
     height: 100px;
 }
 
+
+#init-res-div {
+
+
+    width: 500px!important;
+    height: 130px!important;
+}
+
+
 #audio-obj {
     position: absolute;
-    top: 40%; left: 50%;
+    top: 5%; left: 65%;
     transform: translate(-50%,-50%);
-    width: 300px;
+    width: 500px;
     height: 100px;
 }
 
@@ -89,6 +98,10 @@ h2 {
     text-align: center;
 }
 
+#file-uploader.highlight {
+    border-color: indianred;
+}
+
 #file-menu {
     position:relative;
     cursor: pointer!important;
@@ -102,3 +115,4 @@ h2 {
     height: 100%;
     width: 100%;
 }
+

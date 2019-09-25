@@ -13,15 +13,6 @@ var optionsTemplate = {
 
 //window.AudioContext = window.AudioContext || window.webkitAudioContext;
 //var audioContext = new AudioContext(); // web audio api context
-try {
-	var audioContext;
-	const AudioContext = window.AudioContext || window.webkitAudioContext;
-	audioContext = new AudioContext();
-	optionsTemplate.sampleRate = audioContext.sampleRate;
-  } catch (e) {
-	throw 'Could not instantiate AudioContext: ' + e.message;
-}
-
 
 // class for encapsulating all the utility methods for using essentia.js
 class EssentiaJsTools {

@@ -1,7 +1,6 @@
 /*
 
 */
-let recording = false;
 var recordButton = $("recordButton");
 var stopButton = $("stopButton");
 var recBlob;
@@ -14,13 +13,15 @@ let recAudioBuffer = null;
 let urlAudioBuffer = null;
 var recStream = null;
 
+
 // global js object for the web app
 let appStatus = {
                   audioLoaded: false, 
                   realtime: false,
                   uploadMode: 'mic', // {'mic', 'file'}
                   audioChanged: false,
-                  cachePlot: {
+                  isRecording: false,
+                  isPlotCached: {
                       melody: false,
                       chroma: false,
                       bpmHistogram: false
@@ -28,26 +29,30 @@ let appStatus = {
                 };
 
 
+function recordAudioWaveSurf() {
+    if (!appStatus.isRecording) {
+      
+        if (appStatus.audioLoaded) { removeAudioButtons(); };
 
-// function recordAudioWaveSurf() {
-//     if (!recording) {
-//         wavesurfer.microphone.on('deviceReady', function (stream) {
-//             recording = true;
-//             $('#recordButton').html('Stop &nbsp;&nbsp;<i class="stop icon"></i>');
-//             $("#recordButton").prop("disabled", false);
-//             console.log('Microphone device ready ..', stream);
-//             recStream = stream;
-//         });
-//         wavesurfer.microphone.start();        
-//     }
-//     else {
-//         wavesurfer.microphone.stopDevice();
-//         recording = false;
-//         $("#recordButton").prop("disabled", false);
-//         $("#recordButton").html('Record &nbsp;&nbsp;<i class="microphone icon"></i>');
-//         console.log("Stopped recording and close the device ...");
-//     }
-// }
+        wavesurfer.microphone.on('deviceReady', function (stream) {
+            appStatus.isRecording = true;
+            $('#recordButton').html('Stop &nbsp;&nbsp;<i class="stop icon"></i>');
+            $("#recordButton").prop("disabled", false);
+            // console.log('Microphone device ready ..');
+            console.log('Microphone device ready ..', stream);
+            // recStream = stream;
+        });
+        wavesurfer.microphone.start();        
+    }
+    else {
+        wavesurfer.microphone.stopDevice();
+        wavesurfer.microphone.destroy();
+        appStatus.isRecording = false;
+        $("#recordButton").prop("disabled", false);
+        $("#recordButton").html('Record &nbsp;&nbsp;<i class="microphone icon"></i>');
+        console.log("Stopped recording and close the device ...");
+    }
+}
 
 
 function loadSoundFromUri(url) {
@@ -57,9 +62,8 @@ function loadSoundFromUri(url) {
 
     // Decode asynchronously
     request.onload = function() {
-        audioContext.decodeAudioData(request.response, function(buffer) {
+        audioCtx.decodeAudioData(request.response, function(buffer) {
         urlAudioBuffer = buffer;
-        appStatus.audioLoaded = true;
     });
     }
     request.send();
@@ -110,13 +114,13 @@ const recordStop = async () => {
     appStatus.audioLoaded = true;
     // addSourceToAudioPlayer(recAudio.audioUrl);
     // $("#audio-div").show();
-    $("#recordButton").prop("disabled", false);
-    $("#recordButton").html('Record &nbsp;&nbsp;<i class="microphone icon"></i>');
+    // $("#recordButton").prop("disabled", false);
+    // $("#recordButton").html('Record &nbsp;&nbsp;<i class="microphone icon"></i>');
   } else {
     recorder = await recordAudio();
     recorder.start();
-    $('#recordButton').html('Stop &nbsp;&nbsp;<i class="stop icon"></i>');
-    $("#recordButton").prop("disabled", false);
+    // $('#recordButton').html('Stop &nbsp;&nbsp;<i class="stop icon"></i>');
+    // $("#recordButton").prop("disabled", false);
   }
 };
 
@@ -209,4 +213,5 @@ assertAudioLoadedMessage = function() {
     if (!appStatus.audioLoaded) {
     }
 }
+
 

@@ -12,8 +12,8 @@
   <link rel="shortcut icon" href="src/img/essentia.js.ico">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="chrome">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- Edit your site info here -->
     <meta name="essentia.js" content="essentia.js-examples">
 
@@ -31,6 +31,7 @@
     <script src="src/js/essentiatools.js"></script>
     <script src="src/js/app.js"></script>
     <script src="src/js/dataviz.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/plugin/wavesurfer.microphone.min.js"></script>
   </head>
   <body>  
       <script>
@@ -38,34 +39,55 @@
       // 20 mb file upload limit
       FILE_UPLOAD_LIMIT = 20;
       var chartJsCtx;
+      var audioCtx;
       var wavesurfer;
 
       $(document).ready(function () {
 
+
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                optionsTemplate.sampleRate = audioCtx.sampleRate;
+                } catch (e) {
+                throw 'Could not instantiate AudioContext: ' + e.message;
+            }
+
+            
+            // if (audioCtx.state === 'suspended') {
+            //     // resume audioCtx for chrome support
+            // }
+
+            // for the menu tabs
+            $('.menu .item').tab();
+
+            // create wavesurfer instance
             wavesurfer = WaveSurfer.create({
-                audioContext: audioContext,
+                audioContext: audioCtx,
                 container: '#audio-obj',
                 waveColor: 'grey',
-                progressColor: '#3D60BF',
+                progressColor: '#2B6FAC',
                 cursorColor: '#fff',
                 barWidth: 2,
+                plugins: [
+                    WaveSurfer.microphone.create({
+                        'buffersize': 4096,
+                    })
+                ]
             });
 
-            // wavesurfer = WaveSurfer.create({
-            //     container: '#waveform',
-            //     waveColor: 'purple',
-            //     progressColor: 'red',
-            //     audioContext: audioContext,
-            //     plugins: [
-            //         WaveSurfer.microphone.create({
-            //             'buffersize': 256
-            //         })
-            //     ]
-            // });
+
+            // pre-load a audio file at load
+            // $('#info-msg').hide();
+            // wavesurfer.load(sampleFreesoundUri);
+            // if (appStatus.audioLoaded) { removeAudioButtons(); };
+            // createAudioButtons();
+            // appStatus.audioLoaded = true;
 
             $('#recordButton').click(function () {
                 // recordAudioWaveSurf();
                 appStatus.uploadMode = 'mic';
+                recordAudioWaveSurf();
                 recordStop();
                 $('#info-msg').hide();
             });
@@ -80,7 +102,7 @@
                     e.preventDefault();
                     e.stopPropagation();
                 }
-            )
+            );
             $('#file-uploader').on(
                 'dragenter',
                 function (e) {
@@ -112,10 +134,9 @@
                     console.log("Appstatus.realtime: ", appStatus.realtime)}
             });
 
-            // 
+            
             $('#melody-tab').on('click', function() {
                 console.log("clicked");
-
                 $.tab({
                     'onVisible': function() {
                         // plot melody
@@ -140,7 +161,7 @@
                 <h2 class="ui header white-text">Audio/Music analysis on your web-browser</h2>
             </center>
         </div>
-        <div class="ui divider" style="height: 10px; width: 10px"></div>
+        <div class="ui divider" style="height: 10px; width: 5px"></div>
     </div>
 
     <br>
@@ -177,15 +198,8 @@
             </div>
 
             <div id="results" class="ui ten wide column basic segment result-segment">
-                <div id="result-tab-menu" class="ui top attached tabular menu">
-                    <a class="item active" data-tab="first" style="color: indianred">Audio</a>
-                    <a id="melody-tab" class="item" data-tab="second" style="color: indianred">Melody</a>
-                    <a class="item" data-tab="third" style="color: indianred">Key</a>
-                    <a class="item" data-tab="fourth" style="color: indianred">BPM</a>
-                    <a class="item" data-tab="fifth" style="color: indianred">Loudness</a>
-                    <a class="item" data-tab="sixth" style="color: indianred">MFCC</a>
-                </div>
-                <div id="init-res-div" class="ui bottom attached tab segment active" data-tab="first" style="width: 900px; height: 350px; background-color: transparent">
+
+                <div id="init-res-div" class="ui centered segment" style="width: 450px; height: 200px; background-color: transparent">
                     <!-- <canvas id="test-canvas"></canvas> -->
                     <div id="audio-obj" class="ui row" style="margin-bottom: 40px;">
                             <center>
@@ -203,15 +217,24 @@
                         </center>
                     </div>            
                 </div>
-                <div id="melody-div" class="ui bottom attached tab segment" data-tab="second" style="width: 900px; height: 350px; background-color: transparent">
+
+                <div id="result-tab-menu" class="ui top attached tabular white menu">
+                    <a id="melody-tab" class="item active" data-tab="first" style="color: indianred">Melody</a>
+                    <a class="item" data-tab="second" style="color: indianred">Key</a>
+                    <a class="item" data-tab="third" style="color: indianred">BPM Histogram</a>
+                    <a class="item" data-tab="fourth" style="color: indianred">Loudness</a>
+                    <a class="item" data-tab="fifth" style="color: indianred">MFCC</a>
                 </div>
-                <div id="key-div" class="ui bottom attached tab segment" data-tab="third" style="width: 900px; height: 350px; background-color: transparent">
+        
+                <div id="melody-div" class="ui bottom attached tab segment active" data-tab="first" style="width: 900px; height: 350px; background-color: transparent">
                 </div>
-                <div id="bpm-div" class="ui bottom attached tab segment" data-tab="fourth" style="width: 900px; height: 350px; background-color: transparent"> 
+                <div id="key-div" class="ui bottom attached tab segment" data-tab="second" style="width: 900px; height: 350px; background-color: transparent">
                 </div>
-                <div id="loudness-div" class="ui bottom attached tab segment" data-tab="fifth" style="width: 900px; height: 350px; background-color: transparent">
+                <div id="bpm-div" class="ui bottom attached tab segment" data-tab="third" style="width: 900px; height: 350px; background-color: transparent"> 
                 </div>
-                <div id="mfcc-div" class="ui bottom attached tab segment" data-tab="sixth" style="width: 900px; height: 350px; background-color: transparent">
+                <div id="loudness-div" class="ui bottom attached tab segment" data-tab="fourth" style="width: 900px; height: 350px; background-color: transparent">
+                </div>
+                <div id="mfcc-div" class="ui bottom attached tab segment" data-tab="fifth" style="width: 900px; height: 350px; background-color: transparent">
                 </div>
             </div>
 

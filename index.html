@@ -45,17 +45,15 @@
       var wavesurfer;
       var myChartObj;
 
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+        optionsTemplate.sampleRate = audioCtx.sampleRate;
+        } catch (e) {
+        throw 'Could not instantiate AudioContext: ' + e.message;
+      }
+
       $(document).ready(function () {
-
-
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext();
-                optionsTemplate.sampleRate = audioCtx.sampleRate;
-                } catch (e) {
-                throw 'Could not instantiate AudioContext: ' + e.message;
-            }
-
 
             // if (audioCtx.state === 'suspended') {
             //     // resume audioCtx for chrome support

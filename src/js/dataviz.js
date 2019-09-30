@@ -1,13 +1,10 @@
-// global settings for chart.js
-Chart.defaults.line.spanGaps = true;
-Chart.defaults.global.defaultFontColor = 'white';
-Chart.defaults.global.defaultFontSize = 14;
+
 
 var resultTabContainers = ['melody-div', 'key-div', 'bpm-div', 'loudness-div', 'mfcc-div']
 
 
 // compute predominant melody of a given audio buffer
-getPreDominantMelody = function(audioData) {
+const getPreDominantMelody = function(audioData) {
     var signal = typedFloat32Array2Vec(audioData);
     var pitches = new Module.VectorFloat();
     var pitchConfidence = new Module.VectorFloat();
@@ -17,6 +14,15 @@ getPreDominantMelody = function(audioData) {
     pitches.resize(0, 1);
     pitchConfidence.resize(0, 1);
     return pitch;
+}
+
+
+const getLogMelBands = function(audioData) {
+    var signal = typedFloat32Array2Vec(audioData);
+    var melbands = Module.logMelBandsExtractor(signal, 1024, 1024);
+    var mbands = vec2typedFloat32Array(melbands);
+    melbands.resize(0,1);
+    return mbands;
 }
 
 
@@ -38,11 +44,62 @@ getLoudnessVickers = function(audioFrame) {
 }
 
 
+const plotMelodyChart = function(audioData, opts) {
+    // compute pitch contours
+    var pitch = getPreDominantMelody(audioData);  
+    var timeAxis = makeLinSpace(0, audioData.length / 44100., pitch.length);
+    // round to 2 decimels
+    timeAxis = timeAxis.map(function(each_element){
+        return Number(each_element.toFixed(2));
+    });
+    // set data
+    opts.xAxis.data = timeAxis;
+    opts.series[0].data = pitch;
+    // plot
+    myChartObj = echarts.init(document.getElementById('melody-div'), 'light');
+    myChartObj.setOption(opts);
+}
+
+
+const plotMelBandsChart = function(audioData, opts) {
+
+    var melbands = getLogMelBands(audioData);
+    var timeAxis = makeLinSpace(0, audioData.length / 44100., melbands.length);
+    // round to 2 decimels
+    timeAxis = timeAxis.map(function(each_element){
+        return Number(each_element.toFixed(2));
+    });
+
+    // set data
+    opts.xAxis.data = timeAxis;
+    opts.series[0].data = melbands;
+    // plot
+    myChartObj = echarts.init(document.getElementById('mfcc-div'), 'light');
+    myChartObj.setOption(opts);
+}
+
+
+const plotChromaChart = function(audioData, opts) {
+
+
+    // set data
+    opts.xAxis.data = 0;
+    opts.yAxis.data = 0;
+    opts.series[0].data = 0;
+    // plot the chart
+    myChartObj = echarts.init(document.getElementById('chroma-div'), 'light');
+    myChartObj.setOption(opts);
+
+}
+
+
+
 // given a audio buffer array compute and plot pre-dominant melody contours
 plotLineChartMelody = function(audioData) {
 
     var pitch = getPreDominantMelody(audioData);
     var dataset = format1dDataToChartJsFormat(pitch, audioData.length);
+    deleteCanvas();
     createCanvasOnDiv('melody-div', 'melody-viz');
 
     var scatterChart = new Chart(chartJsCtx, {
@@ -52,6 +109,8 @@ plotLineChartMelody = function(audioData) {
                 label: 'Predominant Pitch Melodia',
                 data: dataset,
                 showLine: true,
+                xAxisID: 'Time (secs)',
+                yAxisID: 'Frequencies (Hz)'
                 
               }]
         },
@@ -78,7 +137,7 @@ plotMelodyContour = function(pitchValues, audioLength) {
     pitchTimes = makeLinSpace(0, audioLength / 44100., pitchValues.length);
     var data = [{
         type: "scatter",
-        mode: "lines",
+        mode: "linear",
         name: "Predominant Pitch Melodia",
         x: pitchTimes,
         y: pitchValues,
@@ -100,6 +159,13 @@ plotMelodyContour = function(pitchValues, audioLength) {
     };
     Plotly.newPlot('viz-div', data, layout);
 }
+
+
+
+plotBpmHistogram = function(audioData) {
+
+}
+
 
 
 plotLoudnessBar = function() {
@@ -231,35 +297,4 @@ formatTwoArrays2ObjectArrays = function(arrayOne, arrayTwo) {
     return outArray;
 }
 
-
-
-drawAudioWaveform = function (inputBuffer, canvasObj) {
-
-    const scaleY = (amplitude, height) => {
-        const range = 256;
-        const offset = 128;
-        return height - ((amplitude + offset) * height) / range;
-      }
-
-      const ctx = canvasObj.getContext('2d');
-      ctx.beginPath();
-      
-      
-      // Loop forwards, drawing the upper half of the waveform
-      for (let x = 0; x < inputBuffer.length; x++) {
-        const val = inputBuffer[x];
-        console.log("drawing");
-        ctx.lineTo(x + 0.5, scaleY(val, canvasObj.height) + 0.5);
-      }
-      
-      // Loop backwards, drawing the lower half of the waveform
-      for (let x = inputBuffer.length - 1; x >= 0; x--) {
-        const val = inputBuffer[x];
-        ctx.lineTo(x + 0.5, scaleY(val, canvasObj.height) + 0.5);
-      }
-      
-      ctx.closePath();
-      ctx.stroke();
-      ctx.fill();
-}
 

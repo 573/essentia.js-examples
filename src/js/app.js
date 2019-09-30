@@ -4,7 +4,7 @@
 var recordButton = $("recordButton");
 var stopButton = $("stopButton");
 var recBlob;
-let sampleFreesoundUri = "https://freesound.org/data/previews/0/515_319-lq.mp3";
+let sampleFreesoundUri = "https://freesound.org/data/previews/323/323022_4082267-lq.mp3";
 let recorder = null;
 let recAudio = null;
 let recAudioChunks = [];
@@ -31,15 +31,15 @@ let appStatus = {
 
 function recordAudioWaveSurf() {
     if (!appStatus.isRecording) {
-      
+
         if (appStatus.audioLoaded) { removeAudioButtons(); };
 
         wavesurfer.microphone.on('deviceReady', function (stream) {
             appStatus.isRecording = true;
             $('#recordButton').html('Stop &nbsp;&nbsp;<i class="stop icon"></i>');
             $("#recordButton").prop("disabled", false);
-            // console.log('Microphone device ready ..');
-            console.log('Microphone device ready ..', stream);
+            console.log('Microphone device ready ..');
+            // console.log('Microphone device ready ..', stream);
             // recStream = stream;
         });
         wavesurfer.microphone.start();        
@@ -88,6 +88,7 @@ const recordAudio = () =>
     const stop = () =>
       new Promise(resolve => {
         mediaRecorder.addEventListener("stop", () => {
+
           const audioBlob = new Blob(recAudioChunks);
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);

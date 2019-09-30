@@ -4,7 +4,7 @@
 var recordButton = $("recordButton");
 var stopButton = $("stopButton");
 var recBlob;
-let sampleFreesoundUri = "https://freesound.org/data/previews/323/323022_4082267-lq.mp3";
+let sampleFreesoundUri = "https://freesound.org/data/previews/328/328857_230356-lq.mp3";
 let recorder = null;
 let recAudio = null;
 let recAudioChunks = [];

@@ -23,15 +23,17 @@
 
     <title>essentia.js - Demos</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/wavesurfer.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/wavesurfer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/plugin/wavesurfer.microphone.min.js"></script>
+    <script type="text/javascript" src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/zeu"></script>
     <script src="dist/essentiamin.js"></script>
-    <script src="src/js/essentiatools.js"></script>
     <script src="src/js/app.js"></script>
+    <script src="src/js/essentiatools.js"></script>
+    <script src="src/js/echarts.js"></script>
+    <script src="src/js/chartoptions.js"></script>
     <script src="src/js/dataviz.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/plugin/wavesurfer.microphone.min.js"></script>
   </head>
   <body>  
       <script>
@@ -41,6 +43,7 @@
       var chartJsCtx;
       var audioCtx;
       var wavesurfer;
+      var myChartObj;
 
       $(document).ready(function () {
 
@@ -53,10 +56,11 @@
                 throw 'Could not instantiate AudioContext: ' + e.message;
             }
 
-            
+
             // if (audioCtx.state === 'suspended') {
             //     // resume audioCtx for chrome support
             // }
+
 
             // for the menu tabs
             $('.menu .item').tab();
@@ -137,13 +141,13 @@
             
             $('#melody-tab').on('click', function() {
                 console.log("clicked");
-                $.tab({
-                    'onVisible': function() {
-                        // plot melody
-                        console.log("clicked on plot");
-                        plotLineChartMelody(urlAudioBuffer.getChannelData(0));
-                    }
-                });
+                // $.tab({
+                //     'onVisible': function() {
+                //         // plot melody
+                //         console.log("clicked on plot");
+                //         plotLineChartMelody(urlAudioBuffer.getChannelData(0));
+                //     }
+                // });
             });
 
 
@@ -161,7 +165,7 @@
                 <h2 class="ui header white-text">Audio/Music analysis on your web-browser</h2>
             </center>
         </div>
-        <div class="ui divider" style="height: 10px; width: 5px"></div>
+        <div class="ui divider" style="height: 2px; width: 2px"></div>
     </div>
 
     <br>
@@ -211,9 +215,9 @@
                     <div id="info-msg" class="ui info message">
                         <i class="close icon"></i>
                         <center>
-                        Add audio from your native microphone 
+                        Record audio from your native microphone 
                                     or 
-                        upload an audio file
+                        upload an audio file! (recommended to upload short audio files)
                         </center>
                     </div>            
                 </div>
@@ -223,7 +227,7 @@
                     <a class="item" data-tab="second" style="color: indianred">Key</a>
                     <a class="item" data-tab="third" style="color: indianred">BPM Histogram</a>
                     <a class="item" data-tab="fourth" style="color: indianred">Loudness</a>
-                    <a class="item" data-tab="fifth" style="color: indianred">MFCC</a>
+                    <a class="item" data-tab="fifth" style="color: indianred">Log Mel Bands</a>
                 </div>
         
                 <div id="melody-div" class="ui bottom attached tab segment active" data-tab="first" style="width: 900px; height: 350px; background-color: transparent">

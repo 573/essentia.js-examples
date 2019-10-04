@@ -39,7 +39,7 @@ const computeBpmHistogram = function(signal) {
 
 // compute hpcp chroma features of a given audio data (std::vector<float>)
 const computeChromaHpcp = function(signal) {
-    var frames = Module.frameCutter(signal, 4096, 4096, "blackmanharris62");
+    var frames = Module.frameGenerator(signal, 4096, 4096, "blackmanharris62");
     var hpcpFrames = [];
     for (var i=0; i < frames.size(); i++) {
         var hpcp = Module.hpcp(frames.get(i), true);

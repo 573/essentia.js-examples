@@ -37,8 +37,8 @@ let myAppSettings = {
                       },
                       // states to check whether to plot the audio features in the front-end
                       doPlot: {
-                          melody: false,
-                          chroma: false,
+                          melody: true,
+                          chroma: true,
                           bpmHistogram: true,
                           key: false,
                           loudness: true,
@@ -244,15 +244,15 @@ function onRecordAudioFeatureExtractor(event) {
             onRecordPlotLoudness(loud, offlineLoudnessPlot);
         };
 
-        if (myAppSettings.doPlot.bpmHistogram) {
-            var bpmHist = computeBpmHistogram(bufferSignal);
-            onRecordHistogramPlot(bpmHist, offlineBpmHistogramPlot);
-        }
+        // if (myAppSettings.doPlot.bpmHistogram) {
+        //     var bpmHist = computeBpmHistogram(bufferSignal);
+        //     onRecordHistogramPlot(bpmHist, offlineBpmHistogramPlot);
+        // }
 
-        if (myAppSettings.doPlot.chroma) {
-            var hpcpFrames = computeChromaHpcp(bufferSignal);
-            onRecordHpcpPlot(hpcpFrames, offlineHpcpPlot);
-        }
+        // if (myAppSettings.doPlot.chroma) {
+        //     var hpcpFrames = computeChromaHpcp(bufferSignal);
+        //     onRecordHpcpPlot(hpcpFrames, offlineHpcpPlot);
+        // }
 
     }
 }

@@ -1,3 +1,4 @@
-# essentia.js-examples
+# essentia.js-examples (front-end)
 
-Website containing demos using [essentia.js](https://github.com/MTG/essentia.js)
+Lightweight website containing demos using [essentia.js](https://github.com/MTG/essentia.js)
+

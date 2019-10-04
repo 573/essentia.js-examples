@@ -11,10 +11,8 @@ var optionsTemplate = {
 		window: 'hann',
 };
 
-//window.AudioContext = window.AudioContext || window.webkitAudioContext;
-//var audioContext = new AudioContext(); // web audio api context
 
-// class for encapsulating all the utility methods for using essentia.js
+// class for encapsulating all the utility methods for using essentia.js (TODo: redo)
 class EssentiaJsTools {
 
 	constructor (myAudioContext, options) {

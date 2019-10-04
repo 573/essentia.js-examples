@@ -224,13 +224,13 @@ function onRecordAudioFeatureExtractor(event) {
         var bufferSignal = typedFloat32Array2Vec(event.inputBuffer.getChannelData(0));
 
         // compute features and update the plot if the user has activated it in the front-end
-        if (myAppSettings.doPlot.melody) {
-            // compute melody contours
-            var pitches = computePreDominantMelody(bufferSignal);
-            // plot the graph
-            onRecordPlotMelody(pitches, offlineMelodyPlot);
+        // if (myAppSettings.doPlot.melody) {
+        //     // compute melody contours
+        //     var pitches = computePreDominantMelody(bufferSignal);
+        //     // plot the graph
+        //     onRecordPlotMelody(pitches, offlineMelodyPlot);
 
-        }
+        // }
 
         if (myAppSettings.doPlot.logMelBands) {
             var melBands = computeLogMelBands(bufferSignal);

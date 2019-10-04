@@ -4,7 +4,8 @@
     var Module = {
         onRuntimeInitialized: function() {
             console.log('essentiamin.js and .wasm files are loaded sucessfully ...');
-            loadSoundFromUri(sampleFreesoundUri);
+            essentiaBackendVersion = Module.getEssentiaVersion();
+            console.log('Essentia:', essentiaBackendVersion, '- http://essentia.upf.edu');      
         }
     };
 
@@ -18,50 +19,66 @@
     <meta name="essentia.js" content="essentia.js-examples">
 
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css"/>
     <link rel="stylesheet" type="text/css" href="src/css/main.css"/>
 
-    <title>essentia.js - Demos</title>
+    <title>essentia.js Demos</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/wavesurfer.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/plugin/wavesurfer.microphone.min.js"></script>
-    <script type="text/javascript" src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/zeu"></script>
-    <script src="dist/essentiamin.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="dist/essentiamin-0.0.1.js"></script>
+    <script src="src/js/utils.js"></script>
     <script src="src/js/app.js"></script>
+    <script src="src/js/features.js"></script>
     <script src="src/js/essentiatools.js"></script>
-    <script src="src/js/echarts.js"></script>
-    <script src="src/js/chartoptions.js"></script>
     <script src="src/js/dataviz.js"></script>
   </head>
   <body>  
       <script>
 
       // 20 mb file upload limit
-      FILE_UPLOAD_LIMIT = 20;
+      FILE_UPLOAD_SIZE_LIMIT = 20;
+      // audio upload duration limit in seconds
+      FILE_UPLOAD_DURATION_LIMIT = 70;
+
       var chartJsCtx;
       var audioCtx;
       var wavesurfer;
+      var essentiaBackendVersion;
       var myChartObj;
 
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContext();
-        optionsTemplate.sampleRate = audioCtx.sampleRate;
-        } catch (e) {
-        throw 'Could not instantiate AudioContext: ' + e.message;
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContext();
+          } 
+      catch (e) {
+          throw 'Could not instantiate AudioContext: ' + e.message;
+      }
+
+
+      loadAudioFromUriAsAudioBuffer(myAppSettings.testAudioUri);
+
+      function resumeAudioCtx() {
+          audioCtx.resume();
+          var msgStr = "* Ready ... <hr>" + "*Built with essentia:" + essentiaBackendVersion + "* <br>";
+          updateAppStatus(msgStr);
       }
 
       $(document).ready(function () {
 
-            // if (audioCtx.state === 'suspended') {
-            //     // resume audioCtx for chrome support
-            // }
-
-
             // for the menu tabs
             $('.menu .item').tab();
+            
+            myAppSettings.audioContext = audioCtx;
+            myAppSettings.sampleRate = audioCtx.sampleRate;
+
+            if (audioCtx.state === 'suspended') {
+                updateAppStatus('<a href="javascript:resumeAudioCtx();" style="color:red;">* Click here to start the engine *</a>');
+                alert("[Warning]: Due to some api changes in the browsers, you need to manually resume the audio context obj from the status box by a click!");
+            } else {
+                updateAppStatus();
+            }
 
             // create wavesurfer instance
             wavesurfer = WaveSurfer.create({
@@ -73,29 +90,39 @@
                 barWidth: 2,
                 plugins: [
                     WaveSurfer.microphone.create({
-                        'buffersize': 4096,
+                        'buffersize': myAppSettings.bufferSize,
                     })
                 ]
             });
 
-
             // pre-load a audio file at load
             // $('#info-msg').hide();
             // wavesurfer.load(sampleFreesoundUri);
-            // if (appStatus.audioLoaded) { removeAudioButtons(); };
+            // if (myAppSettings.audioLoaded) { removeAudioButtons(); };
             // createAudioButtons();
-            // appStatus.audioLoaded = true;
+            // myAppSettings.audioLoaded = true;
 
             $('#recordButton').click(function () {
-                // recordAudioWaveSurf();
-                appStatus.uploadMode = 'mic';
-                recordAudioWaveSurf();
-                recordStop();
-                $('#info-msg').hide();
+
+                var recording = $(this).hasClass('recording');
+                if (!recording) {
+                    $(this).prop("disabled", true);
+                    startMicRecordStream(myAppSettings.bufferSize, onRecordAudioFeatureExtractor, function() {
+                        // called when the promise fulfilled
+                        $('#recordButton').addClass('recording');
+                        $('#recordButton').html('Stop &nbsp;&nbsp;<i class="stop icon"></i>');
+                        $('#recordButton').prop("disabled", false);
+                    });
+                } else {
+                    stopMicRecordStream();
+                }
             });
+
+        
+
             $('#file-menu').change(function () {
-                appStatus.uploadMode = 'file';
-                uploadAudioFileFromMenu($("#file-menu"), 'popup');
+                myAppSettings.uploadMode = 'file';
+                uploadAudioFileFromMenu($("#file-menu"), 'popup', onFileUploadAudioFeatureExtractor);
                 $('#info-msg').hide();
             });
             $('#file-uploader').on(
@@ -120,8 +147,8 @@
                             e.preventDefault();
                             e.stopPropagation();
                             /*UPLOAD FILES HERE*/
-                            appStatus.uploadMode = 'file';
-                            uploadAudioFileFromMenu(e.originalEvent.dataTransfer.files[0], 'dragndrop');
+                            myAppSettings.uploadMode = 'file';
+                            uploadAudioFileFromMenu(e.originalEvent.dataTransfer.files[0], 'dragndrop', onFileUploadAudioFeatureExtractor);
                             $('#info-msg').hide();
                         }
                     }
@@ -129,12 +156,12 @@
             );
 
             // toggle switch for using real-time mode
-            $('#realtime-tab').checkbox({
-                onChecked: function () {appStatus.realtime = true; 
-                    console.log("Appstatus.realtime: ", appStatus.realtime)},
-                onUnchecked: function () {appStatus.realtime = false; 
-                    console.log("Appstatus.realtime: ", appStatus.realtime)}
-            });
+            // $('#realtime-tab').checkbox({
+            //     onChecked: function () {myAppSettings.realtime = true; 
+            //         console.log("myAppSettings.realtime: ", myAppSettings.realtime)},
+            //     onUnchecked: function () {myAppSettings.realtime = false; 
+            //         console.log("myAppSettings.realtime: ", myAppSettings.realtime)}
+            // });
 
             
             $('#melody-tab').on('click', function() {
@@ -146,6 +173,24 @@
                 //         plotLineChartMelody(urlAudioBuffer.getChannelData(0));
                 //     }
                 // });
+            });
+            $('#chroma-tab').on('click', function() {
+                myAppSettings.doPlot.chroma = true;
+                // $('#chroma-div').append("<div id='loader-div' class='ui active dimmer'> <div class='ui text loader'>Loading</div></div>");
+            });
+
+            $('#bpm-tab').on('click', function() {
+                myAppSettings.doPlot.bpmHistogram = true;
+
+            });
+
+            $('mfcc-tab').on('click', function() {
+                myAppSettings.doPlot.logMelBands = true;
+            });
+
+            $('loudness-tab').on('click', function() {
+                console.log("lo clicked")
+                myAppSettings.doPlot.loudness = true;
             });
 
 
@@ -170,16 +215,20 @@
 
     <div class="body-container">
 
-        <div class="ui two column grid container content-container">
+        <div class="ui three column grid container content-container">
 
-            <div id="control_btns" class="control_btns six wide left aligned column">
+            <div id="control_btns" class="control_btns six wide left aligned column">                
+                <div class="ui horizontal divider" style="height: 5px"></div>
                 <div class="ui basic centered grid">
-                    <div class="ui floated compact" style="color: azure!important;">
+
+                    <div class="ui horizontal divider" style="color: papayawhip;">Real-time</div>
+
+                    <<!-- div class="ui floated compact" style="color: azure!important;">
                         <div id="realtime-tab" class="ui toggle checkbox">
                             <input type="checkbox" name="public">
                             <label style="color: azure!important;">Real-time</label>
                         </div>
-                    </div>
+                    </div> -->
                     <div class="ui vertical buttons row">
                         <button id="recordButton" class="ui vertical red inverted big button record-button">Record
                             &nbsp;&nbsp;<i class="microphone icon"></i></button>
@@ -194,8 +243,11 @@
                         <input type="file" id="file-menu"/>
                     </div>
                 </div>
-                <div class="ui left basic row segment">
-                    <p hidden id="status_demo" class="white-text"><span id="update_status"></span></p>
+
+                <div class="ui horizontal divider" style="color: papayawhip; height: 10px">Status</div>
+                <div id="app-status" class="ui floating message">
+                    <!-- <p>Estimated pitch: </p>
+                    <p>Confidence: </p> -->
                 </div>
             </div>
 
@@ -204,11 +256,11 @@
                 <div id="init-res-div" class="ui centered segment" style="width: 450px; height: 200px; background-color: transparent">
                     <!-- <canvas id="test-canvas"></canvas> -->
                     <div id="audio-obj" class="ui row" style="margin-bottom: 40px;">
-                            <center>
-                                <audio hidden id="audio-div" controls>
-                                    <source id="audio-source" src="" type="audio/wav"/>
-                                </audio>
-                            </center>
+                        <center>
+                            <audio hidden id="audio-div" controls>
+                                <source id="audio-source" src="" type="audio/wav"/>
+                            </audio>
+                        </center>
                     </div>
                     <div id="info-msg" class="ui info message">
                         <i class="close icon"></i>
@@ -222,22 +274,29 @@
 
                 <div id="result-tab-menu" class="ui top attached tabular white menu">
                     <a id="melody-tab" class="item active" data-tab="first" style="color: indianred">Melody</a>
-                    <a class="item" data-tab="second" style="color: indianred">Key</a>
-                    <a class="item" data-tab="third" style="color: indianred">BPM Histogram</a>
-                    <a class="item" data-tab="fourth" style="color: indianred">Loudness</a>
-                    <a class="item" data-tab="fifth" style="color: indianred">Log Mel Bands</a>
+                    <a id="chroma-tab" class="item" data-tab="second" style="color: indianred">Chroma</a>
+                    <a id="bpm-tab" class="item" data-tab="third" style="color: indianred">BPM Histogram</a>
+                    <a id="mfcc-tab" class="item" data-tab="fourth" style="color: indianred">Log Mel Bands</a>
+                    <a id="loudness-tab" class="item" data-tab="fifth" style="color: indianred">Loudness</a>
+                    <!-- <a class="item" data-tab="fifth" style="color: indianred">Loudness</a> -->
                 </div>
         
-                <div id="melody-div" class="ui bottom attached tab segment active" data-tab="first" style="width: 900px; height: 350px; background-color: transparent">
+                <div id="melody-div" class="ui bottom attached tab segment active plots" data-tab="first">
+                    <!-- <div id="loader-div" class="ui active dimmer">
+                        <div class="ui text loader">Computing</div>
+                    </div> -->
                 </div>
-                <div id="key-div" class="ui bottom attached tab segment" data-tab="second" style="width: 900px; height: 350px; background-color: transparent">
+                <div id="chroma-div" class="ui bottom attached tab segment plots" data-tab="second">
                 </div>
-                <div id="bpm-div" class="ui bottom attached tab segment" data-tab="third" style="width: 900px; height: 350px; background-color: transparent"> 
+                <div id="bpm-div" class="ui bottom attached tab segment plots" data-tab="third"> 
                 </div>
-                <div id="loudness-div" class="ui bottom attached tab segment" data-tab="fourth" style="width: 900px; height: 350px; background-color: transparent">
+                <div id="mfcc-div" class="ui bottom attached tab segment plots" data-tab="fourth">
                 </div>
-                <div id="mfcc-div" class="ui bottom attached tab segment" data-tab="fifth" style="width: 900px; height: 350px; background-color: transparent">
+                <div id="loudness-div" class="ui bottom attached tab segment plots" data-tab="fifth">
                 </div>
+                <!-- <div id="loudness-div" class="ui bottom attached tab segment" data-tab="fifth" style="width: 900px; height: 350px; background-color: transparent">
+                </div> -->
+                
             </div>
 
         </div>

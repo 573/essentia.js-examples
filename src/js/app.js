@@ -1,8 +1,9 @@
 // A simple web app using essentia.js
 
-
 // global js object for the web app settings and event states
 let myAppSettings = {
+                      // category of demo {'pitch', 'rhythm', 'dynamics'}
+                      category: null,
                       audioContext: null,
                       // global mic stream object for the audio recording
                       gumStream: null,
@@ -21,29 +22,23 @@ let myAppSettings = {
                       realtime: false,
                       // mode of audio input for feature extraction (whether using realtime mic or offlline file upload)
                       uploadMode: 'mic', // {'mic', 'file'},
+                      uploadAudioVector: null,
+                      uploadAudioData: null,
                       uploadAudioDataLength: null,
                       uploadAudioDuration: null,
                       audioChanged: false,
                       isRecording: false,
                       stopRecord: false,
-                      // states to check whether to initiate plotly graph instances
-                      initiatePlots: {
+                      /*// states to check whether to initiate plotly graph instances
+                      initiatePlot: {
                           melody: true,
-                          chroma: true,
-                          bpmHistogram: true,
-                          loudness: true,
-                          key: true,
-                          logMelBands: true,
                       },
                       // states to check whether to plot the audio features in the front-end
                       doPlot: {
                           melody: true,
-                          chroma: true,
-                          bpmHistogram: true,
-                          key: false,
-                          loudness: true,
-                          logMelBands: true,
-                      },
+                      },*/
+                      cacheFeatures: {},
+                      reloadPage: false,
                       // For dev env, freesound soud uri for testing 
                       testAudioUri: "https://freesound.org/data/previews/328/328857_230356-lq.mp3",
 };
@@ -99,7 +94,7 @@ function startMicRecordStream(bufferSize, onProcessCallback, callback) {
 
     $('#info-msg').hide();
     wavesurfer.microphone.start();
-
+    // cross-browser support for getUserMedia
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;           
     window.URL = window.URL || window.webkitURL || window.mozURL || window.msURL
 
@@ -114,31 +109,26 @@ function startMicRecordStream(bufferSize, onProcessCallback, callback) {
             if (myAppSettings.recordedAudioData) { myAppSettings.recordedAudioData.length = 0 };
 
             if (myAppSettings.gumStream.active) { 
-
                 myAppSettings.uploadMode = 'mic';
-
                 console.log('Audio context sample rate = ' + audioCtx.sampleRate);
                 var mic = audioCtx.createMediaStreamSource(stream);
 
                 // We need the buffer size that is a power of two 
                 if ((bufferSize % 2) != 0 || bufferSize < 4096) {
-                    error("* Wrong buffer size");
+                    error("* Wrong stream buffer size");
                     throw "Choose a buffer size that is a power of two and greater than 4096"
                 };
                 // In most platforms where the sample rate is 44.1 kHz or 48 kHz, 
                 // and the default bufferSize will be 4096, giving 10-12 updates/sec.
                 console.log('Buffer size = ' + bufferSize);
                 const scriptNode = audioCtx.createScriptProcessor(bufferSize, 1, 1);
-
                 // onprocess callback
                 scriptNode.onaudioprocess = onProcessCallback;
-
                 // adapted from crema.js code
                 // It seems necessary to connect the stream to a sink for the pipeline to work, contrary to documentataions.
                 // As a workaround, here we create a gain node with zero gain, and connect temp to the system audio output.
                 const gain = audioCtx.createGain();
                 gain.gain.setValueAtTime(0, audioCtx.currentTime);
-
                 mic.connect(scriptNode);
                 scriptNode.connect(gain);
                 gain.connect(audioCtx.destination);
@@ -149,7 +139,6 @@ function startMicRecordStream(bufferSize, onProcessCallback, callback) {
                 }; 
 
                 if (callback) { callback() };
-
 
             } else error("* No mic stream");
       }, function(message) {
@@ -176,11 +165,11 @@ function mergeBuffers(recBuffers, recLength) {
 function stopMicRecordStream() {
 
     console.log("Stopped recording ...");
-    // stop viz
+    // stop mic stream viz
     wavesurfer.microphone.stopDevice();
     wavesurfer.microphone.destroy();
 
-    // stop the stream
+    // stop the actual mic stream
     myAppSettings.stopRecord = true;
     myAppSettings.isRecording = false;
     myAppSettings.gumStream.getAudioTracks()[0].stop();
@@ -217,49 +206,45 @@ function stopMicRecordStream() {
 // callback function to do feature extraction and plotting on mic input streams
 function onRecordAudioFeatureExtractor(event) {
 
+    if (myAppSettings.reloadPage) {
+        window.location.reload();
+    }
+
     if (myAppSettings.isRecording) {
     
         myAppSettings.recordedAudioBuffer.push(event.inputBuffer.getChannelData(0)); 
-        // convert the flaot32 audio data into std::vector<float> for using essentia algos 
+        // convert the float32 audio data into std::vector<float> for using essentia algos 
         var bufferSignal = typedFloat32Array2Vec(event.inputBuffer.getChannelData(0));
 
-        // compute features and update the plot if the user has activated it in the front-end
-        // if (myAppSettings.doPlot.melody) {
-        //     // compute melody contours
-        //     var pitches = computePreDominantMelody(bufferSignal);
-        //     // plot the graph
-        //     onRecordPlotMelody(pitches, offlineMelodyPlot);
+        if (!bufferSignal) { throw "onRecordingError: empty audio signal input found!"};
 
-        // }
-
-        if (myAppSettings.doPlot.logMelBands) {
-            var melBands = computeLogMelBands(bufferSignal);
-            // plot
-            onRecordPlotLogMelBands(melBands, offlineLogMelBandsPlot);
-        };
-
-        if (myAppSettings.doPlot.loudness) {
-            var loud = computeLoudnessVickers(bufferSignal);
-            // plot
-            onRecordPlotLoudness(loud, offlineLoudnessPlot);
-        };
-
-        // if (myAppSettings.doPlot.bpmHistogram) {
-        //     var bpmHist = computeBpmHistogram(bufferSignal);
-        //     onRecordHistogramPlot(bpmHist, offlineBpmHistogramPlot);
-        // }
-
-        // if (myAppSettings.doPlot.chroma) {
-        //     var hpcpFrames = computeChromaHpcp(bufferSignal);
-        //     onRecordHpcpPlot(hpcpFrames, offlineHpcpPlot);
-        // }
-
+        if (myAppSettings.category === 'pitch') {
+            onRecordProcessPitchCategory(bufferSignal);
+        }
+        if (myAppSettings.category === "rhythm") { 
+            console.log(Module.danceability(bufferSignal));
+            onRecordProcessRhythmCategory(bufferSignal);
+        }
+        if (myAppSettings.category === "tonal") { 
+            onRecordProcessTonalCategory(bufferSignal);
+        }
+        if (myAppSettings.category === "dynamics") { 
+            onRecordProcessDynamicsCategory(bufferSignal);
+        }
+        if (myAppSettings.category === "spectral") { 
+            onRecordProcessSpectralCategory(bufferSignal);
+        }
     }
 }
 
 
 // callback function to do feature extraction and plotting of an offline uploaded audio file
 function onFileUploadAudioFeatureExtractor(url) {
+
+    if (myAppSettings.reloadPage) {
+        window.location.reload();
+    }
+
     var request = new XMLHttpRequest();
     request.open('GET', url, true);
     request.responseType = 'arraybuffer';
@@ -274,7 +259,7 @@ function onFileUploadAudioFeatureExtractor(url) {
                 alert("Too long audio file to process! Please a upload a audio file less than " + FILE_UPLOAD_DURATION_LIMIT + " seconds");
                 throw "Excedees maximum duration of audio file upload of: " + FILE_UPLOAD_DURATION_LIMIT + " seconds";
             }
-            $('#loader-div').hide();
+
             wavesurfer.load(url);
             createAudioButtons();
             myAppSettings.audioLoaded = true;
@@ -283,97 +268,135 @@ function onFileUploadAudioFeatureExtractor(url) {
             updateAppStatus("* computing features ...")
 
             myAppSettings.uploadAudioDataLength = buffer.getChannelData(0).length;
+            myAppSettings.uploadAudioData = buffer.getChannelData(0);
+            var signal = typedFloat32Array2Vec(myAppSettings.uploadAudioData);
+            myAppSettings.uploadAudioVector = signal;
 
-            var signal = typedFloat32Array2Vec(buffer.getChannelData(0));
+            var sTime = performance.now();
 
-            if (myAppSettings.doPlot.melody) { 
-
-                var pitches = computePreDominantMelody(signal);
-                offlineMelodyPlot(pitches);
+            if (myAppSettings.category === "pitch") { 
+                onFileUploadProcessPitchCategory(signal);
             }
 
-            if (myAppSettings.doPlot.bpmHistogram) {
-
-                var bpmHist = computeBpmHistogram(signal);
-                offlineBpmHistogramPlot(bpmHist);
+            if (myAppSettings.category === "rhythm") { 
+                onFileUploadProcessRhythmCategory(signal); 
             }
 
-            if (myAppSettings.doPlot.chroma) {
-
-                var hpcpFrames = computeChromaHpcp(signal);
-                offlineHpcpPlot(hpcpFrames);
+            if (myAppSettings.category === "tonal") { 
+                onFileUploadProcessTonalCategory(signal);
             }
 
-            if (myAppSettings.doPlot.logMelBands) {
-                var melBands = computeLogMelBands(signal);
-                // plot
-                offlineLogMelBandsPlot(melBands);
-            };
-
-            if (myAppSettings.doPlot.loudness) {
-                var loud = computeLoudnessVickers(signal);
-                // plot
-                offlineLoudnessPlot(loud);
+            if (myAppSettings.category === "dynamics") { 
+                onFileUploadProcessDynamicsCategory(signal);
             }
 
+            if (myAppSettings.category === "spectral") { 
+                onFileUploadProcessSpectralCategory(signal);
+            }
 
-    });
+            var eTime = performance.now();
+            console.log('Feature computation and plotting done in ' + (eTime - sTime).toFixed(2) + ' ms');
+
+            myAppSettings.reloadPage = true;
+            updateAppStatus("* done ...");
+        });
     }
     request.send();
 }
 
 
+function onRecordProcessPitchCategory(bufferSignal) {
 
-// var recBlob;
-// let recorder = null;
-// let recAudio = null;
-// let recAudioChunks = [];
-// var recStream = null;
-// // adapted from https://gist.github.com/bryanjenningz/f60c42b0a2091c91bad21c91faadc88d
-// const recordAudio = () =>
-//   new Promise(async resolve => {
-//     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-//     const mediaRecorder = new MediaRecorder(stream);
-//     mediaRecorder.addEventListener("dataavailable", event => {
-//       recAudioChunks.push(event.data);
-//     });
-//     const start = () => mediaRecorder.start();
-//     const stop = () =>
-//       new Promise(resolve => {
-//         mediaRecorder.addEventListener("stop", () => {
-
-//           const audioBlob = new Blob(recAudioChunks);
-//           const audioUrl = URL.createObjectURL(audioBlob);
-//           const audio = new Audio(audioUrl);
-//           // plot stuffs here
-//           const play = () => audio.play();
-//           // addSourceToAudioPlayer(audio);
-//           resolve({ audioBlob, audioUrl, play});
-//         });
-//         mediaRecorder.stop();
-//       });
-//     resolve({ start, stop });
-// });
+    if (myAppSettings.doPlot.pyin) { 
+        var pitches = computePitchYinProbabilistic(bufferSignal);
+        plotMelodyContour(pitches, myDataVizSettings.pyin, 'pyin-div', 'PitchYinProbabilistic');
+    }   
+}
 
 
-// const recordStop = async () => {
+function onFileUploadProcessPitchCategory(signal) {
 
-//   if (recorder) {
-//     recAudio = await recorder.stop();
-//     recorder = null;
-//     // add recorded audio to viz
-//     wavesurfer.load(recAudio.audioUrl);
-//     if (myAppSettings.audioLoaded) { removeAudioButtons(); };
-//     createAudioButtons();
-//     myAppSettings.audioLoaded = true;
-//     // addSourceToAudioPlayer(recAudio.audioUrl);
-//     // $("#audio-div").show();
-//     // $("#recordButton").prop("disabled", false);
-//     // $("#recordButton").html('Record &nbsp;&nbsp;<i class="microphone icon"></i>');
-//   } else {
-//     recorder = await recordAudio();
-//     recorder.start();
-//     // $('#recordButton').html('Stop &nbsp;&nbsp;<i class="stop icon"></i>');
-//     // $("#recordButton").prop("disabled", false);
-//   }
-// };
+    if (myAppSettings.doPlot.pyin) { 
+        var pitches = computePitchYinProbabilistic(myAppSettings.uploadAudioVector);
+        plotMelodyContour(pitches, myDataVizSettings.pyin, 'pyin-div', 'PitchYinProbabilistic');
+    }   
+}
+
+
+function onRecordProcessTonalCategory(bufferSignal) {
+
+    if (myAppSettings.doPlot.chords) {
+        var chordFeats = computeChordFeatures(bufferSignal);
+        onRecordChordPlot(chordFeats, myAppSettings.initiatePlot.chords, 'chord-div', 'ChordDetection');
+    }
+
+    if (myAppSettings.doPlot.hpcp) { 
+        var chrom = computeChromaHpcp(bufferSignal);   
+        plotChromaHeatmap(chrom, myAppSettings.initiatePlot.hpcp, myDataVizSettings.hpcp, 'hpcp-div', 'Harmonic Pitch Class Profile (HPCP)');
+    }
+}
+
+
+function onFileUploadProcessTonalCategory(signal) {
+
+    if (myAppSettings.doPlot.hpcp) { 
+        var chrom = computeChromaHpcp(signal);    
+        plotChromaHeatmap(chrom, myAppSettings.initiatePlot.hpcp, myDataVizSettings.hpcp, 'hpcp-div', 'Harmonic Pitch Class Profile (HPCP)');
+    }   
+}
+
+
+function onRecordProcessRhythmCategory(bufferSignal) {
+
+    if (myAppSettings.doPlot.danceability) {
+        var danceability = computeDanceability(myAppSettings.uploadAudioVector);
+        plotSingleValueData(danceability, myAppSettings.initiatePlot.danceability, 'danceability-div', 'Danceability');
+    }
+}
+
+function onFileUploadProcessRhythmCategory(signal) {
+
+    if (myAppSettings.doPlot.beatTracker) {
+        var beats = computBeatTrackerMultiFeature(signal);
+        var dataObj = {
+            ticks: beats,
+        }
+        plotTimeSeriesOverlayAudio(dataObj, myAppSettings.initiatePlot.beatTracker, myDataVizSettings.beatTracker, 'beattracker-div', 'BeatTrackerMultiFeature');
+    }   
+}
+
+function onRecordProcessDynamicsCategory(bufferSignal) {
+
+    if (myAppSettings.doPlot.loudnessVickers) { 
+        var vickersLoudness = computeLoudnessVickers(bufferSignal);    
+        plotLoudness(vickersLoudness, myAppSettings.initiatePlot.loudnessVickers, 'loudnessvickers-div');
+    }   
+}
+
+function onFileUploadProcessDynamicsCategory(signal) {
+
+    if (myAppSettings.doPlot.loudnessVickers) { 
+        var vickersLoudness = computeLoudnessVickers(signal);    
+        plotLoudness(vickersLoudness, myAppSettings.initiatePlot.loudnessVickers, 'loudnessvickers-div');
+    }   
+}
+
+
+function onRecordProcessSpectralCategory(bufferSignal) {
+
+    if (myAppSettings.doPlot.logMelSpectrogram) { 
+        var logMelSpect = computeLogMelSpectrogram(bufferSignal, 128);
+        plotSpectrogram(logMelSpect, myAppSettings.initiatePlot.logMelSpectrogram, myDataVizSettings.logMelSpectrogram, 'logmelbands-div', 'LogMelSpectrogram'); 
+    }   
+}
+
+function onFileUploadProcessSpectralCategory(signal) {
+
+    if (myAppSettings.doPlot.logMelSpectrogram) { 
+        // 128 mel bands
+        var logMelSpect = computeLogMelSpectrogram(signal, 128); 
+        plotSpectrogram(logMelSpect, myAppSettings.initiatePlot.logMelSpectrogram, myDataVizSettings.logMelSpectrogram, 'logmelbands-div', 'LogMelSpectrogram');   
+    }   
+}
+
+

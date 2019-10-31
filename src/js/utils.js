@@ -40,6 +40,11 @@ function getBlobFileContainer() {
 }
 
 
+function addProcessLoader() {
+    var loaderDiv = "<div id='loader-div' class='ui active dimmer'><div class='ui text loader'>Computing</div></div>"
+}
+
+
 function checkUploadFileExtension(blob, allowedExtensions=["wav", "mp3", 'ogg']) {
     var filename_split = blob.name.split(".")
     var fileExt = filename_split[filename_split.length - 1];
@@ -56,7 +61,6 @@ function createAudioButtons() {
     $input.appendTo($("#audio-obj"));
     var $stop = $('<button id="stop-btn" class="ui vertical red inverted centered button" onclick="wavesurfer.stop()"><i class="stop icon"></i>Stop</button>');
     $stop.appendTo($('#audio-obj'));
-
 }
 
 function removeAudioButtons() {
@@ -87,7 +91,6 @@ function uploadAudioFileFromMenu(fileContainer, uploadType, onLoadExtractor) {
     // addToAudioPlayer(blob);
     if (myAppSettings.audioLoaded) { removeAudioButtons() };
   
-    $('#loader-div').show();
     var blobUrl = URL.createObjectURL(blob);
     // here we do the feature extraction and plotting offline using the callback function
     onLoadExtractor(blobUrl);
@@ -96,8 +99,6 @@ function uploadAudioFileFromMenu(fileContainer, uploadType, onLoadExtractor) {
 
 // encode to wav audio from channel data from recorder.js
 function encodeWAV(samples) {
-
-
     var numChannels = 1;
     var sampleRate = 44100;
 
@@ -150,7 +151,6 @@ function encodeWAV(samples) {
 }
 
 
-
 function checkHostBrowser() {
     // Opera 8.0+
     var isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
@@ -189,3 +189,47 @@ function checkHostBrowser() {
     if (isChrome) { return "chrome" };
 
 }
+
+
+function jsonCopy(src) {
+  return JSON.parse(JSON.stringify(src));
+}
+
+
+function getMostFreqElementArray(array)
+{
+    if(array.length == 0)
+        return null;
+    var modeMap = {};
+    var maxIdx = 0;
+    var maxEl = array[0], maxCount = 1;
+    for(var i = 0; i < array.length; i++)
+    {
+        var el = array[i];
+        if(modeMap[el] == null)
+            modeMap[el] = 1;
+        else
+            modeMap[el]++;  
+        if(modeMap[el] > maxCount)
+        {
+            maxEl = el;
+            maxIdx = i;
+            maxCount = modeMap[el];
+        }
+    }
+    var outObj = {maxEl: maxEl, maxIdx: maxIdx};
+    return outObj;
+}
+
+
+function transposeArray(matrix) {
+  return matrix[0].map((col, i) => matrix.map(row => row[i]));
+}
+
+
+function logNorm(arr) {
+    let normArr = arr.map(x => Math.log10(x) * 10);
+    return normArr;
+}
+
+

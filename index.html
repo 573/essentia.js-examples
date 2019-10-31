@@ -1,21 +1,9 @@
 <html lang="en">
-  <script>
-
-    var Module = {
-        onRuntimeInitialized: function() {
-            console.log('essentiamin.js and .wasm files are loaded sucessfully ...');
-            essentiaBackendVersion = Module.getEssentiaVersion();
-            console.log('Essentia:', essentiaBackendVersion, '- http://essentia.upf.edu');      
-        }
-    };
-
-  </script> 
   <link rel="shortcut icon" href="src/img/essentia.js.ico">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Edit your site info here -->
     <meta name="essentia.js" content="essentia.js-examples">
 
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"/>
@@ -24,179 +12,10 @@
     <title>essentia.js Demos</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/wavesurfer.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/plugin/wavesurfer.microphone.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="dist/essentiamin-0.0.1.js"></script>
     <script src="src/js/utils.js"></script>
     <script src="src/js/app.js"></script>
-    <script src="src/js/features.js"></script>
-    <script src="src/js/essentiatools.js"></script>
-    <script src="src/js/dataviz.js"></script>
   </head>
   <body>  
-      <script>
-
-      // 20 mb file upload limit
-      FILE_UPLOAD_SIZE_LIMIT = 20;
-      // audio upload duration limit in seconds
-      FILE_UPLOAD_DURATION_LIMIT = 70;
-
-      var chartJsCtx;
-      var audioCtx;
-      var wavesurfer;
-      var essentiaBackendVersion;
-      var myChartObj;
-
-      try {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          audioCtx = new AudioContext();
-          } 
-      catch (e) {
-          throw 'Could not instantiate AudioContext: ' + e.message;
-      }
-
-
-      loadAudioFromUriAsAudioBuffer(myAppSettings.testAudioUri);
-
-      function resumeAudioCtx() {
-          audioCtx.resume();
-          var msgStr = "* Ready ... <hr>" + "*Built with essentia:" + essentiaBackendVersion + "* <br>";
-          updateAppStatus(msgStr);
-      }
-
-      $(document).ready(function () {
-
-            // for the menu tabs
-            $('.menu .item').tab();
-            
-            myAppSettings.audioContext = audioCtx;
-            myAppSettings.sampleRate = audioCtx.sampleRate;
-
-            if (audioCtx.state === 'suspended') {
-                updateAppStatus('<a href="javascript:resumeAudioCtx();" style="color:red;">* Click here to start the engine *</a>');
-                alert("[Warning]: Due to some api changes in the browsers, you need to manually resume the audio context obj from the status box by a click!");
-            } else {
-                updateAppStatus();
-            }
-
-            // create wavesurfer instance
-            wavesurfer = WaveSurfer.create({
-                audioContext: audioCtx,
-                container: '#audio-obj',
-                waveColor: 'grey',
-                progressColor: '#2B6FAC',
-                cursorColor: '#fff',
-                barWidth: 2,
-                plugins: [
-                    WaveSurfer.microphone.create({
-                        'buffersize': myAppSettings.bufferSize,
-                    })
-                ]
-            });
-
-            // pre-load a audio file at load
-            // $('#info-msg').hide();
-            // wavesurfer.load(sampleFreesoundUri);
-            // if (myAppSettings.audioLoaded) { removeAudioButtons(); };
-            // createAudioButtons();
-            // myAppSettings.audioLoaded = true;
-
-            $('#recordButton').click(function () {
-
-                var recording = $(this).hasClass('recording');
-                if (!recording) {
-                    $(this).prop("disabled", true);
-                    startMicRecordStream(myAppSettings.bufferSize, onRecordAudioFeatureExtractor, function() {
-                        // called when the promise fulfilled
-                        $('#recordButton').addClass('recording');
-                        $('#recordButton').html('Stop &nbsp;&nbsp;<i class="stop icon"></i>');
-                        $('#recordButton').prop("disabled", false);
-                    });
-                } else {
-                    stopMicRecordStream();
-                }
-            });
-
-        
-
-            $('#file-menu').change(function () {
-                myAppSettings.uploadMode = 'file';
-                uploadAudioFileFromMenu($("#file-menu"), 'popup', onFileUploadAudioFeatureExtractor);
-                $('#info-msg').hide();
-            });
-            $('#file-uploader').on(
-                'dragover',
-                function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            );
-            $('#file-uploader').on(
-                'dragenter',
-                function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            )
-            $('#file-uploader').on(
-                'drop',
-                function (e) {
-                    if (e.originalEvent.dataTransfer) {
-                        if (e.originalEvent.dataTransfer.files.length) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            /*UPLOAD FILES HERE*/
-                            myAppSettings.uploadMode = 'file';
-                            uploadAudioFileFromMenu(e.originalEvent.dataTransfer.files[0], 'dragndrop', onFileUploadAudioFeatureExtractor);
-                            $('#info-msg').hide();
-                        }
-                    }
-                }
-            );
-
-            // toggle switch for using real-time mode
-            // $('#realtime-tab').checkbox({
-            //     onChecked: function () {myAppSettings.realtime = true; 
-            //         console.log("myAppSettings.realtime: ", myAppSettings.realtime)},
-            //     onUnchecked: function () {myAppSettings.realtime = false; 
-            //         console.log("myAppSettings.realtime: ", myAppSettings.realtime)}
-            // });
-
-            
-            $('#melody-tab').on('click', function() {
-                console.log("clicked");
-                // $.tab({
-                //     'onVisible': function() {
-                //         // plot melody
-                //         console.log("clicked on plot");
-                //         plotLineChartMelody(urlAudioBuffer.getChannelData(0));
-                //     }
-                // });
-            });
-            $('#chroma-tab').on('click', function() {
-                myAppSettings.doPlot.chroma = true;
-                // $('#chroma-div').append("<div id='loader-div' class='ui active dimmer'> <div class='ui text loader'>Loading</div></div>");
-            });
-
-            $('#bpm-tab').on('click', function() {
-                myAppSettings.doPlot.bpmHistogram = true;
-
-            });
-
-            $('mfcc-tab').on('click', function() {
-                myAppSettings.doPlot.logMelBands = true;
-            });
-
-            $('loudness-tab').on('click', function() {
-                console.log("lo clicked")
-                myAppSettings.doPlot.loudness = true;
-            });
-
-
-        });
-    </script> 
-
     <div class="ui main_wrapper landing-image">
 
     <div class="ui header centered" id="header">
@@ -205,7 +24,7 @@
         </a>
         <div>
             <center>
-                <h2 class="ui header white-text">Audio/Music analysis on your web-browser</h2>
+                <h2 class="ui header white-text">Audio/Music analysis in your web-browser</h2>
             </center>
         </div>
         <div class="ui divider" style="height: 2px; width: 2px"></div>
@@ -214,92 +33,34 @@
     <br>
 
     <div class="body-container">
+    
+        <div class="ui divider" style="height: 10px; width: 2px"></div>
 
-        <div class="ui three column grid container content-container">
-
-            <div id="control_btns" class="control_btns six wide left aligned column">                
-                <div class="ui horizontal divider" style="height: 5px"></div>
-                <div class="ui basic centered grid">
-
-                    <div class="ui horizontal divider" style="color: papayawhip;">Real-time</div>
-
-                    <<!-- div class="ui floated compact" style="color: azure!important;">
-                        <div id="realtime-tab" class="ui toggle checkbox">
-                            <input type="checkbox" name="public">
-                            <label style="color: azure!important;">Real-time</label>
-                        </div>
-                    </div> -->
-                    <div class="ui vertical buttons row">
-                        <button id="recordButton" class="ui vertical red inverted big button record-button">Record
-                            &nbsp;&nbsp;<i class="microphone icon"></i></button>
-                    </div>
-                </div>
-
-                <div class="ui horizontal divider" style="color: papayawhip;">OR</div>
-
-                <div class="ui basic segment row">
-                    <div class="ui-widget" id="file-uploader">
-                        <p style="position:absolute; padding: 12px; width:85%;"><br><br>Drag'n'Drop a file or click to select a file from your computer</p>
-                        <input type="file" id="file-menu"/>
-                    </div>
-                </div>
-
-                <div class="ui horizontal divider" style="color: papayawhip; height: 10px">Status</div>
-                <div id="app-status" class="ui floating message">
-                    <!-- <p>Estimated pitch: </p>
-                    <p>Confidence: </p> -->
-                </div>
+        <center>
+            <div class="ui red inverted vertical centered buttons" style="width: 20%">
+                <a href="/pitch.html" class="ui big button">Pitch</a>
+                <a href="/tonal.html" class="ui big button">Tonal</a>
+                <a href="/rhythm.html" class="ui big button">Rhythm</a>
+                <a href="/dynamics.html" class="ui big button">Loudness & Dynamics</a>
+                <a href="/spectral.html" class="ui big button">Spectral</a>
             </div>
+        </center>
 
-            <div id="results" class="ui ten wide column basic segment result-segment">
+        <div class="ui divider" style="height: 10px; width: 2px"></div>
 
-                <div id="init-res-div" class="ui centered segment" style="width: 450px; height: 200px; background-color: transparent">
-                    <!-- <canvas id="test-canvas"></canvas> -->
-                    <div id="audio-obj" class="ui row" style="margin-bottom: 40px;">
-                        <center>
-                            <audio hidden id="audio-div" controls>
-                                <source id="audio-source" src="" type="audio/wav"/>
-                            </audio>
-                        </center>
-                    </div>
-                    <div id="info-msg" class="ui info message">
-                        <i class="close icon"></i>
-                        <center>
-                        Record audio from your native microphone 
-                                    or 
-                        upload an audio file! (recommended to upload short audio files)
-                        </center>
-                    </div>            
-                </div>
-
-                <div id="result-tab-menu" class="ui top attached tabular white menu">
-                    <a id="melody-tab" class="item active" data-tab="first" style="color: indianred">Melody</a>
-                    <a id="chroma-tab" class="item" data-tab="second" style="color: indianred">Chroma</a>
-                    <a id="bpm-tab" class="item" data-tab="third" style="color: indianred">BPM Histogram</a>
-                    <a id="mfcc-tab" class="item" data-tab="fourth" style="color: indianred">Log Mel Bands</a>
-                    <a id="loudness-tab" class="item" data-tab="fifth" style="color: indianred">Loudness</a>
-                    <!-- <a class="item" data-tab="fifth" style="color: indianred">Loudness</a> -->
-                </div>
-        
-                <div id="melody-div" class="ui bottom attached tab segment active plots" data-tab="first">
-                    <!-- <div id="loader-div" class="ui active dimmer">
-                        <div class="ui text loader">Computing</div>
-                    </div> -->
-                </div>
-                <div id="chroma-div" class="ui bottom attached tab segment plots" data-tab="second">
-                </div>
-                <div id="bpm-div" class="ui bottom attached tab segment plots" data-tab="third"> 
-                </div>
-                <div id="mfcc-div" class="ui bottom attached tab segment plots" data-tab="fourth">
-                </div>
-                <div id="loudness-div" class="ui bottom attached tab segment plots" data-tab="fifth">
-                </div>
-                <!-- <div id="loudness-div" class="ui bottom attached tab segment" data-tab="fifth" style="width: 900px; height: 350px; background-color: transparent">
-                </div> -->
-                
-            </div>
-
+        <div class="ui small white-text">
+            <center>A collection of demos using essentia.js completely running on your web-browser.</p>
+            </center>
         </div>
+
+        <div class="ui divider" style="height: 10px; width: 2px"></div>
+
+        <center>
+            <button class="ui red inverted large github icon button">
+                <i class="large github icon" href="https://github.com/MTG/essentia.js">
+                </i>
+            </button>
+        </center>
 
         <center>
         <div class="footer">
@@ -316,6 +77,6 @@
 
     </div>
 
-</div>   
-  </body>
+    </div>   
+</body>
 </html>

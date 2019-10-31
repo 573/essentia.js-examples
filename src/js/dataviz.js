@@ -1,6 +1,51 @@
+// scripts for data visualisation of essentia features
 
 
-var resultTabContainers = ['melody-div', 'key-div', 'bpm-div', 'loudness-div', 'mfcc-div']
+// data viz settings for each features
+let myDataVizSettings = {
+
+    layout_template: {
+        plot_bgcolor: "transparent",
+        paper_bgcolor: "#FCF7F7",
+        width: 670,
+        height: 290,
+    },
+
+    yin: {
+        startTimeIndex: 0
+    },
+    pyin: {
+        startTimeIndex: 0
+    },
+    melodia: {
+        startTimeIndex: 0
+    },
+    predominantMelodia: {
+        startTimeIndex: 0
+    },
+    hpcp: {
+        startTimeIndex: 0
+    },
+    chroma: {
+        startTimeIndex: 0
+    },
+    beatTracker: {
+        startTimeIndex: 0
+    },
+    onsetDetection: {
+        startTimeIndex: 0
+    },
+    danceability: {
+        startTimeIndex: 0
+    },
+    chords: {
+        startTimeIndex: 0
+    },
+    logMelSpectrogram: {
+        startTimeIndex: 0
+    },
+}
+
 
 createCanvasOnDiv = function(divId, chartId) {
     var canvas = document.createElement('canvas');
@@ -18,13 +63,7 @@ deleteCanvas = function() {
 }
 
 
-format1dDataToChartJsFormat = function(data, audioLength) {
-    audioTimes = makeLinSpace(0, audioLength / 44100., data.length);
-    return formatTwoArrays2ObjectArrays(audioTimes, data);
-}
-
-
-makeLinSpace = function(a,b,n) {
+makeLinSpace = function(a, b, n) {
     if(typeof n === "undefined") n = Math.max(Math.round(b-a)+1,1);
     if(n<2) { return n===1?[a]:[]; }
     var i,ret = Array(n);
@@ -34,96 +73,142 @@ makeLinSpace = function(a,b,n) {
 }
 
 
-formatTwoArrays2ObjectArrays = function(arrayOne, arrayTwo) {
-    var outArray = new Array(arrayOne.length);
-    for (var i=0; i<arrayOne.length; i++) {
-      outArray[i] = {"x": arrayOne[i], "y": arrayTwo[i]};
-    }
-    return outArray;
-}
-
-
-let myDataVizSettings = {
-    melody: {
-        startTimeIndex: 0
-    },
-    chroma: {
-        startTimeIndex: 0
-    },
-}
-
-
 const convertTypedArray2JsArray = function(typedArray) {
     var array =  Array.prototype.slice.call(typedArray);
     return array;
 }
 
 
-function offlineHpcpPlot(hpcpArray) {
+function plotChromaHeatmap(hpcpArray, featureObj, plotObj, divId, plotTitle) {
+
+    
+    if (myAppSettings.uploadMode === 'mic') {
+        var timeAxis = makeLinSpace(plotObj.startTimeIndex, 
+            myAppSettings.bufferSize / myAppSettings.sampleRate, 
+            hpcpArray.length);
+    } else {
+        var timeAxis = makeLinSpace(plotObj.startTimeIndex, 
+            myAppSettings.uploadAudioDataLength / myAppSettings.sampleRate, 
+            hpcpArray.length);
+    }
 
     var layout = {
-        title: "Harmonic Pitch Class Profile (HPCP)",
+        title: plotTitle,
         plot_bgcolor: "transparent",
         paper_bgcolor:"#FCF7F7",
         autosize: false,
         width: 670,
         height: 290,
-        xaxis: {},
-        yaxis: {},
+        xaxis: {
+            autorange: true,
+            time: 'Time',
+        },
+        yaxis: {
+            range: [0, 11]
+        },
     };
 
-    var colorscaleValue = [
-        [0, '#3D9970'],
-        [1, '#001f3f']
-    ];
-
     var chromaBins = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    var timeAxis = makeLinSpace(myDataVizSettings.chroma.startTimeIndex, 
-        myAppSettings.uploadAudioDataLength / myAppSettings.sampleRate, 
-        hpcpArray.length);
 
     var data = {
         x: timeAxis,
         y: chromaBins,
         z: hpcpArray,
+        colorscale: 'Jet',
         type: 'heatmap',
+        transpose: true,
+    };
+
+    if (myAppSettings.initiatePlot.hpcp) {
+        Plotly.newPlot(divId, [data], layout)
+        myAppSettings.initiatePlot.hpcp = false;
+        plotObj.startTimeIndex = timeAxis[timeAxis.length-1];
+
+    } else {
+      timeAxis = makeLinSpace(plotObj.startTimeIndex,
+            plotObj.startTimeIndex + (myAppSettings.bufferSize / myAppSettings.sampleRate), hpcpArray.length);
+
+      plotObj.startTimeIndex = timeAxis[timeAxis.length-1];   
+
+      Plotly.extendTraces(divId, {
+          x: [timeAxis],
+          z: [hpcpArray],
+      }, [0]);
+    }
+}
+
+
+function plotSpectrogram(spectrogram, featureObj,plotObj, divId, plotTitle) {
+
+    var numBands = spectrogram[0].length;
+
+    var specArray = [];
+    for (var i=0; i<spectrogram.length; i++) {
+        specArray.push(convertTypedArray2JsArray(spectrogram[i])); 
+    }
+
+    // var timeAxis = makeLinSpace(plotObj.startTimeIndex, 
+    //     myAppSettings.uploadAudioDataLength / myAppSettings.sampleRate, 
+    //     spectrogram.length);
+
+    if (myAppSettings.uploadMode === 'mic') {
+        var timeAxis = makeLinSpace(plotObj.startTimeIndex, 
+            myAppSettings.bufferSize / myAppSettings.sampleRate, 
+            spectrogram.length);
+    } else {
+        var timeAxis = makeLinSpace(plotObj.startTimeIndex, 
+            myAppSettings.uploadAudioDataLength / myAppSettings.sampleRate, 
+            spectrogram.length);
+    }
+
+    var layout = {
+        title: plotTitle,
+        plot_bgcolor: "transparent",
+        paper_bgcolor:"#FCF7F7",
+        autosize: false,
+        width: 670,
+        height: 290,
+        xaxis: {
+            title: 'Time',
+            range: [plotObj.startTimeIndex, timeAxis[timeAxis.length - 1]],
+        },
+        yaxis: {
+            title: 'Bands',
+            range: [0, numBands + 1 ],
+            type: 'linear',
+        },
+    };
+
+    var data = {
+        x: timeAxis,
+        z: specArray,
+        type: 'heatmapgl',
+        colorscale: 'Jet',
+        transpose: true,
         // colorscale: colorscaleValue,
         //showscale: false,
     };
 
-    console.log("myFristCall");
-
-    Plotly.newPlot('chroma-div', [data], layout);
-}
-
-
-function onRecordHpcpPlot(hpcpFrames, callback) {
-
-    var hpcpArray = [];
-    for (var i=0; i<hpcpFrames.length; i++) {
-        hpcpArray.push(convertTypedArray2JsArray(hpcpFrames[i])); 
-    }
-
-    if (myAppSettings.initiatePlots.chroma) {
-        callback(hpcpArray);
-        myAppSettings.initiatePlots.chroma = false;
+    if (myAppSettings.initiatePlot.logMelSpectrogram) {
+        Plotly.newPlot(divId, [data], layout);
+        myAppSettings.initiatePlot.logMelSpectrogram = false;
+        plotObj.startTimeIndex = timeAxis[timeAxis.length-1];
     } else {
-      var timeAxis = makeLinSpace(myDataVizSettings.chroma.startTimeIndex,
-          myAppSettings.recordedAudioDataLength, hpcpArray.length);
 
-      myDataVizSettings.chroma.startTimeIndex = timeAxis[timeAxis.length-1];
+        timeAxis = makeLinSpace(plotObj.startTimeIndex,
+            plotObj.startTimeIndex + (myAppSettings.bufferSize / myAppSettings.sampleRate), spectrogram.length);
 
-      Plotly.extendTraces('melody-div', {
-          x: [[timeAxis]],
-          z: [[hpcpArray]],
-      }, [0]);
+        plotObj.startTimeIndex = timeAxis[timeAxis.length-1];
+
+        Plotly.extendTraces(divId, {
+            x: [timeAxis],
+            z: [specArray],
+        }, [0]);
     }
-
-
 }
 
 
-function offlineBpmHistogramPlot(bpmHist) {
+function offlineBpmHistogramPlot(bpmHist, divId) {
     var layout = {
         title: {
             text: "BPM Histogram (Essentia RhythmDescriptors)",
@@ -154,7 +239,7 @@ function offlineBpmHistogramPlot(bpmHist) {
         type: 'bar'
     };
 
-    Plotly.newPlot('bpm-div', [data], layout);
+    Plotly.newPlot(divId, [data], layout);
 }
 
 
@@ -176,10 +261,21 @@ function onRecordHistogramPlot(bpmHist, callback) {
 }
 
 
-function offlineMelodyPlot(pitchValues) {
+function plotMelodyContour(pitchValues, plotObj, divId, plotTitle) {
+
+
+    if (myAppSettings.uploadMode === 'mic') {
+        var timeAxis = makeLinSpace(plotObj.startTimeIndex, 
+            myAppSettings.bufferSize / myAppSettings.sampleRate, 
+            pitchValues.length);
+    } else {
+        var timeAxis = makeLinSpace(plotObj.startTimeIndex, 
+            myAppSettings.uploadAudioDataLength / myAppSettings.sampleRate, 
+            pitchValues.length);
+    }
 
     var layout = {
-        title: "Predominant Melody Contour (Melodia)",
+        title: plotTitle,
         plot_bgcolor: "transparent",
         paper_bgcolor:"#FCF7F7",
         autosize: false,
@@ -190,49 +286,39 @@ function offlineMelodyPlot(pitchValues) {
             title: "Time"
         },
         yaxis: {
-            autorange: true,
+            autorange: false,
             range: [0, 1500],
             type: "linear",
             title: "Frequency (Hz)"
         }
     };
 
-    var timeAxis = makeLinSpace(myDataVizSettings.melody.startTimeIndex, 
-        myAppSettings.uploadAudioDataLength / myAppSettings.sampleRate, 
-        pitchValues.length);
+    // var pitchArray = convertTypedArray2JsArray(pitchValues);
 
-    Plotly.newPlot('melody-div', [{
-        x: timeAxis,
-        y: pitchValues,
-        mode: 'lines',
-        line: { color: '#2B6FAC' }
-    }], layout);
+    if (myAppSettings.initiatePlot.pyin) {
 
-    updateAppStatus("* ready ...");
+        Plotly.newPlot(divId, [{
+            x: timeAxis,
+            y: pitchValues,
+            mode: 'lines',
+            line: { color: '#2B6FAC', width: 2 }
+        }], layout);
+        
+        myAppSettings.initiatePlot.pyin = false;
+        plotObj.startTimeIndex = timeAxis[timeAxis.length-1];
 
-    myDataVizSettings.melody.startTimeIndex = timeAxis[timeAxis.length-1]; 
-}
-
-
-function onRecordPlotMelody(pitchValues, callback) {
-
-    var pitchArray = convertTypedArray2JsArray(pitchValues);
-
-    if (myAppSettings.initiatePlots.melody) {
-        callback(pitchArray);
-        myAppSettings.initiatePlots.melody = false;
     } else {
-      var timeAxis = makeLinSpace(myDataVizSettings.melody.startTimeIndex,
-          myAppSettings.recordedAudioDataLength, pitchArray.length);
+        timeAxis = makeLinSpace(plotObj.startTimeIndex,
+            plotObj.startTimeIndex + (myAppSettings.bufferSize / myAppSettings.sampleRate), pitchValues.length);
+        plotObj.startTimeIndex = timeAxis[timeAxis.length-1];
 
-      myDataVizSettings.melody.startTimeIndex = timeAxis[timeAxis.length-1];
-
-      Plotly.extendTraces('melody-div', {
-          // x: [[timeAxis]],
-          y: [[pitchArray]],
-      }, [0]);
+        Plotly.extendTraces(divId, {
+            x: [timeAxis],
+            y: [pitchValues],
+        }, [0]);
     }
 }
+
 
 
 function offlineLogMelBandsPlot(melBands) {
@@ -280,7 +366,8 @@ function onRecordPlotLogMelBands(melBands, callback) {
 }
 
 
-function offlineLoudnessPlot(loudness) {
+function plotLoudness(loudness, featureObj, divId) {
+
     var layout = {
         title: "Vicker's Loudness",
         plot_bgcolor: "transparent",
@@ -302,16 +389,248 @@ function offlineLoudnessPlot(loudness) {
         domain : { x: [0, 1] },
     };
 
-    Plotly.newPlot('loudness-div', [data], layout);
-}
-
-
-function onRecordPlotLoudness(loudness, callback) {
-    if (myAppSettings.initiatePlots.loudness) {
-        callback(loudness);
-        myAppSettings.initiatePlots.loudness = false;
+    if (featureObj) {
+        Plotly.newPlot(divId, [data], layout);
+        featureObj = false;
     } else {
-        Plotly.restyle('loudness-div', {value: loudness});
+        Plotly.restyle(divId, {value: loudness});
     }
 }
+
+
+function offlineChordPlot(chordFeatures, featureObj, divId, plotTitle) {
+
+    createChordMarkers = function(ticks) {
+        var marker = {
+            type: 'rect',
+            // x-reference is assigned to the x-values
+            xref: 'x',
+            // y-reference is assigned to the plot paper [0,1]
+            // yref: 'paper',
+            x0: null,
+            y0: 0,
+            x1: null,
+            y1: 1,
+            fillcolor: '#d3d3d3',
+            opacity: 0.1,
+            line: {
+                width: 1
+            },
+        }
+        var shapes = [];
+        var startIdx = 0;
+        for (var i=1; i< ticks.length; i++) {
+            var vline = jsonCopy(marker);
+            vline.x0 = startIdx;
+            vline.x1 = ticks[i];
+            startIdx = ticks[i];
+            shapes.push(vline);
+        }
+        return shapes;
+    }
+
+    var timeAxis = makeLinSpace(myDataVizSettings.chords.startTimeIndex, 
+        myAppSettings.uploadAudioDataLength / myAppSettings.sampleRate, 
+        chordFeatures.chords.length);
+
+    var vlines = createChordMarkers(timeAxis);
+
+    var layout = {
+        plot_bgcolor: "transparent",
+        paper_bgcolor: "#FCF7F7",
+        width: 670,
+        height: 290,
+        shapes: vlines,
+        yAxis: {
+            type: 'linear',
+            range: [0, 1],
+        },
+        title: plotTitle,
+
+    };
+
+    var strength = {
+        type: "scatter",
+        mode: "lines",
+        name: "strength",
+        x: timeAxis,
+        y: chordFeatures.strength,
+        line: {color: '#2B6FAC'},
+    }
+
+    var yLocs = new Array(chordFeatures.chords.length);
+    yLocs.fill(0.2);
+
+    var chords = {
+        x: timeAxis,
+        y: yLocs,
+        text: chordFeatures.chords,
+        mode: 'text',
+        name: 'chord',
+    };
+
+    if (featureObj) {
+
+        Plotly.newPlot(divId, [ chords, strength ], layout);
+
+    } else {
+
+        Plotly.extendTraces(divId, {
+            y: [ chordFeatures.strength ],
+        }, [0]);
+    }
+
+}
+
+
+function onRecordChordPlot(chordFeatures, featureObj, divId, plotTitle) {
+
+    var chords = getMostFreqElementArray(chordFeatures.chords);
+
+    var layout = {
+        plot_bgcolor: "transparent",
+        paper_bgcolor: "#FCF7F7",
+        width: 670,
+        height: 290,
+    };
+
+    var data = [
+    {
+        type: "indicator",
+        mode: "number",
+        value: chordFeatures.strength[chords.maxIdx],
+        ticker: { showticker: true },
+        // number: { prefix: "$" },
+        title: chords.maxEl,
+      }
+    ];
+
+    if (featureObj) {
+
+        Plotly.newPlot(divId, data, layout);
+
+    } else {
+        Plotly.restyle(divId, {value: chordFeatures.strength[chords.maxIdx], title: chords.maxEl }, [0]);
+    }
+
+}
+
+
+function plotSingleValueData(value, featureObj, divId, plotTitle) {
+
+    var layout = {
+        plot_bgcolor: "transparent",
+        paper_bgcolor: "#FCF7F7",
+        width: 670,
+        height: 290,
+    };
+
+    var data = [
+    {
+        type: "indicator",
+        mode: "number",
+        value: value,
+        ticker: { showticker: true },
+        // number: { prefix: "$" },
+        title: plotTitle,
+      }
+    ];
+
+    if (featureObj) {
+
+        Plotly.newPlot(divId, data, layout);
+
+    } else {
+        Plotly.restyle(divId, {value: value }, [0]);
+    }
+}
+
+
+
+function plotTimeSeriesOverlayAudio(dataObj, featureObj, plotObj, divId, plotTitle) {
+
+    createTicksConfigs = function(ticks) {
+        var marker = {
+            type: 'rect',
+            // x-reference is assigned to the x-values
+            xref: 'x',
+            // y-reference is assigned to the plot paper [0,1]
+            // yref: 'paper',
+            x0: null,
+            y0: -1,
+            x1: null,
+            y1: 1,
+            fillcolor: 'red',
+            opacity: 0.5,
+            line: {
+                width: 1.5
+            }
+        }
+        var shapes = [];
+        for (var i=0; i<ticks.length; i++) {
+            var vline = jsonCopy(marker);
+            vline.x0 = ticks[i];
+            vline.x1 = ticks[i];
+            shapes.push(vline);
+        }
+        return shapes;
+    }
+
+    var timeAxis = makeLinSpace(plotObj.startTimeIndex, 
+        myAppSettings.uploadAudioDataLength / myAppSettings.sampleRate, 
+        dataObj.ticks.length);
+
+    var vlines = createTicksConfigs(dataObj.ticks);
+
+    var layout = {
+        plot_bgcolor: "transparent",
+        paper_bgcolor: "#FCF7F7",
+        width: 670,
+        height: 290,
+        title: plotTitle,
+        shapes: vlines,
+        yAxis: {
+            type: 'linear',
+            range: [-1, 1],
+        }
+
+    };
+
+    var audioData = [{
+        type: "scatter",
+        mode: "lines",
+        x: timeAxis,
+        y: myAppSettings.uploadAudioData,
+        line: {color: '#2B6FAC'},
+    }];
+
+    if (featureObj) {
+
+        Plotly.newPlot(divId, audioData, layout);
+
+    } else {
+
+        Plotly.extendTraces(divId, {
+            y: [ dataObj.audioData ],
+        }, [0]);
+    }
+}
+
+
+
+formatTwoArrays2ObjectArrays = function(arrayOne, arrayTwo) {
+    var outArray = new Array(arrayOne.length);
+    for (var i=0; i<arrayOne.length; i++) {
+      outArray[i] = {"x": arrayOne[i], "y": arrayTwo[i]};
+    }
+    return outArray;
+}
+
+
+format1dDataToChartJsFormat = function(data, audioLength) {
+    audioTimes = makeLinSpace(0, audioLength / 44100., data.length);
+    return formatTwoArrays2ObjectArrays(audioTimes, data);
+}
+
+
 

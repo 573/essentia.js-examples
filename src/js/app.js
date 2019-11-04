@@ -256,7 +256,7 @@ function onFileUploadAudioFeatureExtractor(url) {
             myAppSettings.uploadAudioDuration = buffer.duration;
 
             if (buffer.duration > FILE_UPLOAD_DURATION_LIMIT) {
-                alert("Too long audio file to process! Please a upload a audio file less than " + FILE_UPLOAD_DURATION_LIMIT + " seconds");
+                window.alert("Too long audio file to process! Please a upload a audio file less than " + FILE_UPLOAD_DURATION_LIMIT + " seconds");
                 throw "Excedees maximum duration of audio file upload of: " + FILE_UPLOAD_DURATION_LIMIT + " seconds";
             }
 

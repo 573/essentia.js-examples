@@ -295,7 +295,7 @@ function plotMelodyContour(pitchValues, plotObj, divId, plotTitle) {
 
     // var pitchArray = convertTypedArray2JsArray(pitchValues);
 
-    if (myAppSettings.initiatePlot.pyin) {
+    if (myAppSettings.initiatePlot.pyin || myAppSettings.initiatePlot.melodia || myAppSettings.initiatePlot.predominantMelodia) {
 
         Plotly.newPlot(divId, [{
             x: timeAxis,

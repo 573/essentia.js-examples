@@ -184,7 +184,7 @@
                     updateAppStatus("* Computing features ...");
                     // compute and plot 
                     var pitches = computePitchMelody(myAppSettings.uploadAudioVector);
-                    offlineMelodyPlot(pitches, myDataVizSettings.melodia, 'melodia-div', 'PitchMelodia');
+                    plotMelodyContour(pitches, myDataVizSettings.melodia, 'melodia-div', 'PitchMelodia');
                     myAppSettings.initiatePlot.melodia = false;
                     updateAppStatus("* done ...");
                 }
@@ -195,7 +195,7 @@
                     updateAppStatus("* Computing features ...");
                     // compute and plot 
                     var pitches = computePreDominantMelody(myAppSettings.uploadAudioVector);
-                    offlineMelodyPlot(pitches, myDataVizSettings.predominantMelodia, 'predominantmelodia-div', 'PredominantPitchMelodia');
+                    plotMelodyContour(pitches, myDataVizSettings.predominantMelodia, 'predominantmelodia-div', 'PredominantPitchMelodia');
                     myAppSettings.initiatePlot.predominantMelodia = false;
                     updateAppStatus("* done ...");
                 }

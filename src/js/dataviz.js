@@ -293,6 +293,8 @@ function plotMelodyContour(pitchValues, plotObj, divId, plotTitle) {
         }
     };
 
+    if (myAppSettings.uploadMode === 'mic') { myAppSettings.initiatePlot.melodia = false; myAppSettings.initiatePlot.predominantMelodia = false; };
+
     // var pitchArray = convertTypedArray2JsArray(pitchValues);
 
     if (myAppSettings.initiatePlot.pyin || myAppSettings.initiatePlot.melodia || myAppSettings.initiatePlot.predominantMelodia) {
